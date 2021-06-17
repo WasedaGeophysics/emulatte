@@ -1,4 +1,5 @@
-from transform import HankelTransformFunctions as htf
+import numpy as np
+from w1dem.forward import transform
 
 class VMD:
     def __init__(
@@ -21,7 +22,7 @@ class VMD:
         ans = np.zeros((mdl.ft_size, 6), dtype=complex)
         for index, omega in enumerate(mdl.omega):
             mdl.omega = omega
-            em_field = htf.vmd(mdl, td_transform)
+            em_field = transform.HankelTransformFunctions.vmd(mdl, td_transform)
             # 電場の計算
             ans[index, 0] = em_field["e_x"]
             ans[index, 1] = em_field["e_y"]
@@ -30,7 +31,7 @@ class VMD:
             ans[index, 3] = em_field["h_x"]
             ans[index, 4] = em_field["h_y"]
             ans[index, 5] = em_field["h_z"]
-            if self.time_diff:
+            if time_diff:
                 ans[index, :] = ans[index, :] * 1j * omega       
         ans = self.moment * ans
         ans = {

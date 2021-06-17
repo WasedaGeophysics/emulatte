@@ -2,19 +2,20 @@ import numpy as np
 
 class Subsurface1D:
     #== CONSTRUCTOR ======================================#
-    def __init__(self, thicks, hand_system = "left", displacement_current=False):
+    def __init__(self, thicks, displacement_current=False):
         self.thicks = thicks
         self.depth = np.array([0, *np.cumsum(thicks)]) #層境界深度
-        self.num_layer = len(thicks) + 1 #空気（水）層と最下層を含める
-        self.hand_system = hand_system
+        self.num_layer = len(thicks) + 2 #空気（水）層と最下層を含める
         self.displacement_current = displacement_current
 
         # PERMITTIVITY OF VACUUM
         epsln0 = 8.85418782 * 1e-12
-        self.epsln = np.ones(num_layer) * epsln0
+        self.epsln0 = epsln0
+        self.epsln = np.ones(self.num_layer) * epsln0
         # PERMEABILITY OF VACUUM
         mu0 = 4. * np.pi * 1e-7
-        self.mu = np.ones(num_layer) * mu0
+        self.mu0 = mu0
+        self.mu = np.ones(self.num_layer) * mu0
     
     #== CLASS DESCRIPTION ================================#
     def __str__(self):
@@ -32,6 +33,8 @@ class Subsurface1D:
         self.sigma = 1/rho
 
     def add_colecole_params(self, freqs, rho0, m, tau, c):
+        # 要検討
+        omega = 2 * np.pi * freqs
         im = 1 - (1j * omega * tau) ** c
         res = rho0 * (1 - m * (1 - 1/im))
         self.sigma = 1/res
@@ -53,33 +56,29 @@ class Subsurface1D:
     def locate(self, tcv, sc, rc):
         self.tcv = tcv
         self.num_dipole = tcv.num_dipole
-        sc = sc.T
-        rc = rc.T
-        sx, sy, sz = sc
-        rx, ry, rz = rc
+        self.kernel_te_up_sign = tcv.kernel_te_up_sign
+        self.kernel_te_down_sign = tcv.kernel_te_down_sign
+        self.kernel_tm_up_sign = tcv.kernel_tm_up_sign
+        self.kernel_tm_down_sign = tcv.kernel_tm_down_sign
+        sx, sy, sz = np.array([sc]).T
+        rx, ry, rz = np.array([rc]).T
         r = np.sqrt((rx - sx) ** 2 + (ry - sy) ** 2)
-        n = len(r) #送受信ペアの数
         cos_phi = (rx - sx) / r
         sin_phi = (ry - sy) / r
 
         # 計算できない送受信座標が入力された場合の処理
         delta_z = 1e-8      #filterがanderson801の時は1e-4?
-        for i in range(n):
-            if r[i] == 0:
-                r[i] = 1e-8
-            if (sz[i] in self.depth):
-                sz[i] -= delta_z
-            if (sz[i] == rz[i]):
-                sz[i] -= delta_z
+
+        if r == 0:
+            r -= 1e-8
+        if sz in self.depth:
+            sz = sz - delta_z
+        if sz == rz:
+            sz -= delta_z
 
         # 送受信点が含まれる層の特定
-        src_layer = []
-        rcv_layer = []
-        for i in range(n):
-            src_loc = self.struct.in_which_layer(sz[i])
-            rcv_loc = self.struct.in_which_layer(rz[i])
-            src_layer.append(src_loc)
-            rcv_layer.append(rcv_loc)
+        src_layer = self.in_which_layer(sz)
+        rcv_layer = self.in_which_layer(rz)
 
         # return to self
         self.sx, self.sy ,self.sz = sx, sy, sz
@@ -98,7 +97,7 @@ class Subsurface1D:
         self.freqtime = freqtime
         self.domain = domain
         self.hankel_filter = hankel_filter
-        self.omega = 2 * np.pi * self.freqs
+        self.omega = 2 * np.pi * self.freqtime
         self.ft_size = len(freqtime)
 
         ans = self.tcv.get_result(
@@ -114,32 +113,32 @@ class Subsurface1D:
         ztilde = np.ones((1, self.num_layer, 1), dtype=np.complex)
         ytilde = np.ones((1, self.num_layer, 1), dtype=np.complex)
         k = np.zeros((1, self.num_layer), dtype=np.complex)
-        u = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
-        tanhuh = np.zeros((self.num_layer - 1, self.filter_length, self.num_dipole), dtype=np.complex)
+        u = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=complex)
+        tanhuh = np.zeros((self.num_layer - 1, self.filter_length, self.num_dipole), dtype=complex)
         Y = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
         Z = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
 
         # インピーダンス＆アドミタンス
-        ztilde[0, 0, 0] = 1j * omega * self.mu0
-        ztilde[0, 1:self.num_layer, 0] = 1j * omega * self.mu[1:self.num_layer]
+        ztilde[0, 0, 0] = 1j * self.omega * self.mu[0]
+        ztilde[0, 1:self.num_layer, 0] = 1j * self.omega * self.mu[1:self.num_layer]
         if self.displacement_current:
-            ytilde[0, 0, 0] = 1j * self.omega * self.epsln
+            ytilde[0, 0, 0] = 1j * self.omega * self.epsln[0]
         else:
             ytilde[0, 0, 0] = 1e-13
-        ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1] + 1j * self.omega * self.epsln
+        ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1] + 1j * self.omega * self.epsln0
         for ii in range(0, self.num_layer):
-            Y[ii] = u[ii] / self.ztilde[0, ii, 0]
-            Z[ii] = u[ii] / self.ytilde[0, ii, 0]
+            Y[ii] = u[ii] / ztilde[0, ii, 0]
+            Z[ii] = u[ii] / ytilde[0, ii, 0]
         self.ztilde = ztilde
         self.ytilde = ytilde
 
         # 波数
-        k[0, 0] = (omega ** 2.0 * self.mu[0] * self.epsln) ** 0.5
-        k[0, 1:self.num_layer] = (omega ** 2.0 * self.mu[1:self.num_layer] * self.epsln \
-                                  - 1j * omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5
+        k[0, 0] = (self.omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
+        k[0, 1:self.num_layer] = (self.omega ** 2.0 * self.mu[1:self.num_layer] * self.epsln[1:self.num_layer] \
+                                  - 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5 #:self.num_layer不要では
         # 誘電率を無視する近似
-        # k[0, 0] = 0
-        # k[0, 1:self.num_layer] = (- 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5
+        #k[0, 0] = 0
+        #k[0, 1:self.num_layer] = (- 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5
         self.k = k
 
         # 層に係る量
@@ -215,48 +214,48 @@ class Subsurface1D:
             U_te[self.src_layer - 1] = 0
             U_tm[self.src_layer - 1] = 0
             D_te[self.src_layer - 1] = self.kernel_te_down_sign * r_te[self.src_layer - 1] * np.exp(
-                -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0]))
+                -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0]))
             D_tm[self.src_layer - 1] = self.kernel_tm_down_sign * r_tm[self.src_layer - 1] * np.exp(
-                -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0]))
+                -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0]))
         elif self.src_layer == self.num_layer:
             U_te[self.src_layer - 1] = self.kernel_te_up_sign * R_te[self.src_layer - 1] * np.exp(
-                u[self.src_layer - 1] * (self.depth[0, self.src_layer - 2] - self.sz[0]))
+                u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz[0]))
             U_tm[self.src_layer - 1] = self.kernel_tm_up_sign * R_tm[self.src_layer - 1] * np.exp(
-                u[self.src_layer - 1] * (self.depth[0, self.src_layer - 2] - self.sz[0]))
+                u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz[0]))
             D_te[self.src_layer - 1] = 0
             D_tm[self.src_layer - 1] = 0
         else:
             U_te[self.src_layer - 1] = 1 / (1 - R_te[self.src_layer - 1] * r_te[self.src_layer - 1] * np.exp(
-                -2 * u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2]))) * \
+                -2 * u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2]))) * \
                                     R_te[self.src_layer - 1] * (
                                             self.kernel_te_down_sign * r_te[self.src_layer - 1] * np.exp(
-                                        u[self.src_layer - 1] * (self.depth[0, self.src_layer - 2] - 2 * self.depth[
-                                            0, self.src_layer - 1] + self.sz[
+                                        u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - 2 * self.depth[
+                                            self.src_layer - 1] + self.sz[
                                                                   0])) + self.kernel_te_up_sign * np.exp(
-                                        u[self.src_layer - 1] * (self.depth[0, self.src_layer - 2] - self.sz[0])))
+                                        u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz[0])))
             U_tm[self.src_layer - 1] = 1 / (1 - R_tm[self.src_layer - 1] * r_tm[self.src_layer - 1] * np.exp(
-                -2 * u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2]))) * \
+                -2 * u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2]))) * \
                                     R_tm[self.src_layer - 1] * (
                                             self.kernel_tm_down_sign * r_tm[self.src_layer - 1] * np.exp(
-                                        u[self.src_layer - 1] * (self.depth[0, self.src_layer - 2] - 2 * self.depth[
-                                            0, self.src_layer - 1] + self.sz[
+                                        u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - 2 * self.depth[
+                                            self.src_layer - 1] + self.sz[
                                                                   0])) + self.kernel_tm_up_sign * np.exp(
-                                        u[self.src_layer - 1] * (self.depth[0, self.src_layer - 2] - self.sz[0])))
+                                        u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz[0])))
             D_te[self.src_layer - 1] = 1 / (1 - R_te[self.src_layer - 1] * r_te[self.src_layer - 1] * np.exp(
-                -2 * u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2]))) * \
+                -2 * u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2]))) * \
                                     r_te[self.src_layer - 1] * (
                                             self.kernel_te_up_sign * R_te[self.src_layer - 1] * np.exp(
-                                        -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - 2 * self.depth[
-                                            0, self.src_layer - 2] + self.sz[
+                                        -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - 2 * self.depth[
+                                            self.src_layer - 2] + self.sz[
                                                                    0])) + self.kernel_te_down_sign * np.exp(
-                                        -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0])))
+                                        -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0])))
             D_tm[self.src_layer - 1] = 1 / (1 - R_tm[self.src_layer - 1] * r_tm[self.src_layer - 1] * np.exp(
-                -2 * u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2]))) * \
+                -2 * u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2]))) * \
                                     r_tm[self.src_layer - 1] * (
                                             self.kernel_tm_up_sign * R_tm[self.src_layer - 1] * np.exp(
-                                        -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - 2 * self.depth[
-                                            0, self.src_layer - 2] + self.sz[0])) + self.kernel_tm_down_sign * np.exp(
-                                        -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0])))
+                                        -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - 2 * self.depth[
+                                            self.src_layer - 2] + self.sz[0])) + self.kernel_tm_down_sign * np.exp(
+                                        -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0])))
 
         # for the layers above the src_layer
         if self.rcv_layer < self.src_layer:
@@ -264,34 +263,34 @@ class Subsurface1D:
                 D_te[self.src_layer - 2] = (Y[self.src_layer - 2] * (1 + R_te[self.src_layer - 1]) + Y[
                     self.src_layer - 1] * (1 - R_te[self.src_layer - 1])) / (2 * Y[self.src_layer - 2]) \
                                         * self.kernel_te_up_sign * (np.exp(
-                    -u[self.src_layer - 1] * (self.sz[0] - self.depth[0, self.src_layer - 2])))
+                    -u[self.src_layer - 1] * (self.sz[0] - self.depth[self.src_layer - 2])))
                 D_tm[self.src_layer - 2] = (Z[self.src_layer - 2] * (1 + R_tm[self.src_layer - 1]) + Z[
                     self.src_layer - 1] * (1 - R_tm[self.src_layer - 1])) / (2 * Z[self.src_layer - 2]) \
                                         * self.kernel_tm_up_sign * (np.exp(
-                    -u[self.src_layer - 1] * (self.sz[0] - self.depth[0, self.src_layer - 2])))
+                    -u[self.src_layer - 1] * (self.sz[0] - self.depth[self.src_layer - 2])))
             elif self.src_layer != 1 and self.src_layer != self.num_layer:
                 D_te[self.src_layer - 2] = (Y[self.src_layer - 2] * (1 + R_te[self.src_layer - 1]) + Y[
                     self.src_layer - 1] * (1 - R_te[self.src_layer - 1])) / (2 * Y[self.src_layer - 2]) \
                                         * (D_te[self.src_layer - 1] * np.exp(
-                    -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2])) \
+                    -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2])) \
                                            + self.kernel_te_up_sign * np.exp(
-                            -u[self.src_layer - 1] * (self.sz[0] - self.depth[0, self.src_layer - 2])))
+                            -u[self.src_layer - 1] * (self.sz[0] - self.depth[self.src_layer - 2])))
                 D_tm[self.src_layer - 2] = (Z[self.src_layer - 2] * (1 + R_tm[self.src_layer - 1]) + Z[
                     self.src_layer - 1] * (1 - R_tm[self.src_layer - 1])) / (2 * Z[self.src_layer - 2]) \
                                         * (D_tm[self.src_layer - 1] * np.exp(
-                    -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2])) \
+                    -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2])) \
                                            + self.kernel_tm_up_sign * np.exp(
-                            -u[self.src_layer - 1] * (self.sz[0] - self.depth[0, self.src_layer - 2])))
+                            -u[self.src_layer - 1] * (self.sz[0] - self.depth[self.src_layer - 2])))
 
             for jj in range(self.src_layer - 2, 0, -1):
                 D_te[jj - 1] = (Y[jj - 1] * (1 + R_te[jj]) + Y[jj] * (1 - R_te[jj])) / (2 * Y[jj - 1]) * D_te[
-                    jj] * np.exp(-u[jj] * (self.depth[0, jj] - self.depth[0, jj - 1]))
+                    jj] * np.exp(-u[jj] * (self.depth[jj] - self.depth[jj - 1]))
                 D_tm[jj - 1] = (Z[jj - 1] * (1 + R_tm[jj]) + Z[jj] * (1 - R_tm[jj])) / (2 * Z[jj - 1]) * D_tm[
-                    jj] * np.exp(-u[jj] * (self.depth[0, jj] - self.depth[0, jj - 1]))
+                    jj] * np.exp(-u[jj] * (self.depth[jj] - self.depth[jj - 1]))
             for jj in range(self.src_layer - 1, 1, -1):
-                U_te[jj - 1] = D_te[jj - 1] * np.exp(u[jj - 1] * (self.depth[0, jj - 2] - self.depth[0, jj - 1])) * \
+                U_te[jj - 1] = D_te[jj - 1] * np.exp(u[jj - 1] * (self.depth[jj - 2] - self.depth[jj - 1])) * \
                                R_te[jj - 1]
-                U_tm[jj - 1] = D_tm[jj - 1] * np.exp(u[jj - 1] * (self.depth[0, jj - 2] - self.depth[0, jj - 1])) * \
+                U_tm[jj - 1] = D_tm[jj - 1] * np.exp(u[jj - 1] * (self.depth[jj - 2] - self.depth[jj - 1])) * \
                                R_tm[jj - 1]
             U_te[0] = 0
             U_tm[0] = 0
@@ -302,35 +301,35 @@ class Subsurface1D:
                 U_te[self.src_layer] = (Y[self.src_layer] * (1 + r_te[self.src_layer - 1]) + Y[self.src_layer - 1] * (
                         1 - r_te[self.src_layer - 1])) / (2 * Y[self.src_layer]) \
                                     * self.kernel_te_down_sign * (
-                                        np.exp(-u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0])))
+                                        np.exp(-u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0])))
                 U_tm[self.src_layer] = (Z[self.src_layer] * (1 + r_tm[self.src_layer - 1]) + Z[self.src_layer - 1] * (
                         1 - r_tm[self.src_layer - 1])) / (2 * Z[self.src_layer]) \
                                     * self.kernel_tm_down_sign * (
-                                        np.exp(-u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0])))
+                                        np.exp(-u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0])))
             elif self.src_layer != 1 and self.src_layer != self.num_layer:
                 U_te[self.src_layer] = (Y[self.src_layer] * (1 + r_te[self.src_layer - 1]) + Y[self.src_layer - 1] * (
                         1 - r_te[self.src_layer - 1])) / (2 * Y[self.src_layer]) \
                                     * (U_te[self.src_layer - 1] * np.exp(
-                    -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2])) \
+                    -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2])) \
                                        + self.kernel_te_down_sign * np.exp(
-                            -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0])))
+                            -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0])))
                 U_tm[self.src_layer] = (Z[self.src_layer] * (1 + r_tm[self.src_layer - 1]) + Z[self.src_layer - 1] * (
                         1 - r_tm[self.src_layer - 1])) / (2 * Z[self.src_layer]) \
                                     * (U_tm[self.src_layer - 1] * np.exp(
-                    -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.depth[0, self.src_layer - 2])) \
+                    -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.depth[self.src_layer - 2])) \
                                        + self.kernel_tm_down_sign * np.exp(
-                            -u[self.src_layer - 1] * (self.depth[0, self.src_layer - 1] - self.sz[0])))
+                            -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0])))
             for jj in range(self.src_layer + 2, self.num_layer + 1):
                 U_te[jj - 1] = (Y[jj - 1] * (1 + r_te[jj - 2]) + Y[jj - 2] * (1 - r_te[jj - 2])) / (
                         2 * Y[jj - 1]) * U_te[jj - 2] * np.exp(
-                    -u[jj - 2] * (self.depth[0, jj - 2] - self.depth[0, jj - 3]))
+                    -u[jj - 2] * (self.depth[jj - 2] - self.depth[jj - 3]))
                 U_tm[jj - 1] = (Z[jj - 1] * (1 + r_tm[jj - 2]) + Z[jj - 2] * (1 - r_tm[jj - 2])) / (
                         2 * Z[jj - 1]) * U_tm[jj - 2] * np.exp(
-                    -u[jj - 2] * (self.depth[0, jj - 2] - self.depth[0, jj - 3]))
+                    -u[jj - 2] * (self.depth[jj - 2] - self.depth[jj - 3]))
             for jj in range(self.src_layer + 1, self.num_layer):
-                D_te[jj - 1] = U_te[jj - 1] * np.exp(-u[jj - 1] * (self.depth[0, jj - 1] - self.depth[0, jj - 2])) * \
+                D_te[jj - 1] = U_te[jj - 1] * np.exp(-u[jj - 1] * (self.depth[jj - 1] - self.depth[jj - 2])) * \
                                r_te[jj - 1]
-                D_tm[jj - 1] = U_tm[jj - 1] * np.exp(-u[jj - 1] * (self.depth[0, jj - 1] - self.depth[0, jj - 2])) * \
+                D_tm[jj - 1] = U_tm[jj - 1] * np.exp(-u[jj - 1] * (self.depth[jj - 1] - self.depth[jj - 2])) * \
                                r_tm[jj - 1]
             D_te[self.num_layer - 1] = 0
             D_tm[self.num_layer - 1] = 0
@@ -338,20 +337,19 @@ class Subsurface1D:
         # compute Damping coefficient
         if self.rcv_layer == 1:
             e_up = np.zeros((self.filter_length, self.num_dipole), dtype=np.complex)
-            e_down = np.exp(u[self.rcv_layer - 1] * (self.rz[0] - self.depth[0, self.rcv_layer - 1]))
+            e_down = np.exp(u[self.rcv_layer - 1] * (self.rz[0] - self.depth[self.rcv_layer - 1]))
         elif self.rcv_layer == self.num_layer:
-            e_up = np.exp(-u[self.rcv_layer - 1] * (self.rz[0] - self.depth[0, self.rcv_layer - 2]))
+            e_up = np.exp(-u[self.rcv_layer - 1] * (self.rz[0] - self.depth[self.rcv_layer - 2]))
             e_down = np.zeros((self.filter_length, self.num_dipole), dtype=np.complex)
         else:
-            e_up = np.exp(-u[self.rcv_layer - 1] * (self.rz[0] - self.depth[0, self.rcv_layer - 2]))
-            e_down = np.exp(u[self.rcv_layer - 1] * (self.rz[0] - self.depth[0, self.rcv_layer - 1]))
+            e_up = np.exp(-u[self.rcv_layer - 1] * (self.rz[0] - self.depth[self.rcv_layer - 2]))
+            e_down = np.exp(u[self.rcv_layer - 1] * (self.rz[0] - self.depth[self.rcv_layer - 1]))
         return U_te, U_tm, D_te, D_tm, e_up, e_down
 
-    @classmethod
-    def in_which_layer(cls, z):
-        layer_id = cls.num_layer
-        for i in cls.num_layer:
-            if z <= cls.depth[i]:
+    def in_which_layer(self, z):
+        layer_id = self.num_layer
+        for i in range(self.num_layer+1):
+            if z <= self.depth[i]:
                 layer_id = i + 1
                 break
             else:
