@@ -3,7 +3,7 @@ from scipy.special import erf, erfc
 from utils import *
 
 def compute_kernel_vmd(mdl):
-    U_te, U_tm, D_te, D_tm, e_up, e_down = mdl.compute_coefficients() #u
+    U_te, U_tm, D_te, D_tm, e_up, e_down = mdl.compute_coefficients()
     kernel_te = U_te[mdl.rcv_layer - 1] * e_up + D_te[mdl.rcv_layer - 1] * e_down   \
                     + kroneckers_delta(mdl.rcv_layer, mdl.src_layer) * np.exp(-mdl.u[mdl.src_layer - 1] * np.abs(mdl.rz[0] - mdl.sz[0]))
     kernel_te_hr = U_te[mdl.rcv_layer - 1] * e_up - D_te[mdl.rcv_layer - 1] * e_down \

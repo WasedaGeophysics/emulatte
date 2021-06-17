@@ -13,13 +13,14 @@ class VMD:
         self.kernel_tm_down_sign = 0
 
     def get_result(
-            self, mdl, freqtime, domain, hankel_filter, 
+            self, mdl, freqtime, hankel_filter, domain, 
             time_diff=False, td_transform=None, interpolate=None):
         """
         Docstring
         """
         ans = np.zeros((mdl.ft_size, 6), dtype=complex)
         for index, omega in enumerate(mdl.omega):
+            mdl.omega = omega
             em_field = htf.vmd(mdl, td_transform)
             # 電場の計算
             ans[index, 0] = em_field["e_x"]
