@@ -16,4 +16,9 @@ def compute_kernel_vmd(mdl):
     kernel_h_z = kernel_e_phi * mdl.lambda_
     kernel.extend((kernel_e_phi, kernel_h_r, kernel_h_z))
     kernel = np.array(kernel)
+
+    #for test
+    mdl.kernel_te = kernel_te
+    mdl.kernel_h_z
+    mdl.kernel = kernel
     return kernel
