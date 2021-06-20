@@ -1,4 +1,4 @@
 .vscode/
-._test/
+_test/
 *.DS_Store
 w1dem_old.py
