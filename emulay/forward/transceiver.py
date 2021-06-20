@@ -1,5 +1,5 @@
 import numpy as np
-from w1dem.forward import transform
+from emulay.forward import transform
 
 class VMD:
     def __init__(

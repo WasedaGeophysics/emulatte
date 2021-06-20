@@ -115,8 +115,8 @@ class Subsurface1D:
         k = np.zeros((1, self.num_layer), dtype=np.complex)
         u = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=complex)
         tanhuh = np.zeros((self.num_layer - 1, self.filter_length, self.num_dipole), dtype=complex)
-        Y = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
-        Z = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
+        Y = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=complex)
+        Z = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=complex)
 
         # インピーダンス＆アドミタンス
         ztilde[0, 0, 0] = 1j * self.omega * self.mu[0]
@@ -125,20 +125,16 @@ class Subsurface1D:
             ytilde[0, 0, 0] = 1j * self.omega * self.epsln[0]
         else:
             ytilde[0, 0, 0] = 1e-13
-        ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1] + 1j * self.omega * self.epsln0
-        for ii in range(0, self.num_layer):
-            Y[ii] = u[ii] / ztilde[0, ii, 0]
-            Z[ii] = u[ii] / ytilde[0, ii, 0]
-        self.ztilde = ztilde
-        self.ytilde = ytilde
+        ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1] #+ 1j * self.omega * self.epsln0
+
 
         # 波数
-        k[0, 0] = (self.omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
-        k[0, 1:self.num_layer] = (self.omega ** 2.0 * self.mu[1:self.num_layer] * self.epsln[1:self.num_layer] \
-                                  - 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5 #:self.num_layer不要では
+        #k[0, 0] = (self.omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
+        #k[0, 1:self.num_layer] = (self.omega ** 2.0 * self.mu[1:self.num_layer] * self.epsln[1:self.num_layer] \
+        #                          - 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5 #:self.num_layer不要では
         # 誘電率を無視する近似
-        #k[0, 0] = 0
-        #k[0, 1:self.num_layer] = (- 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5
+        k[0, 0] = 0
+        k[0, 1:self.num_layer] = (- 1j * self.omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5
         self.k = k
 
         # 層に係る量
@@ -150,6 +146,14 @@ class Subsurface1D:
         # tanh
         for ii in range(1, self.num_layer - 1):
             tanhuh[ii] = (1-np.exp(-2*u[ii]* self.thicks[ii - 1]))/((1+np.exp(-2*u[ii]*self.thicks[ii - 1])))
+
+        for ii in range(0, self.num_layer):
+            Y[ii] = u[ii] / ztilde[0, ii, 0]
+            Z[ii] = u[ii] / ytilde[0, ii, 0]
+        self.ztilde = ztilde
+        self.ytilde = ytilde
+        self.Y = Y
+        self.Z = Z
 
         r_te = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
         r_tm = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
@@ -180,6 +184,8 @@ class Subsurface1D:
             r_te[self.src_layer - 1] = (Y[self.src_layer - 1] - Ytilde[self.src_layer]) / (Y[self.src_layer - 1] + Ytilde[self.src_layer])
             r_tm[self.src_layer - 1] = (Z[self.src_layer - 1] - Ztilde[self.src_layer]) / (Z[self.src_layer - 1] + Ztilde[self.src_layer])
 
+        #test
+        self.Ytilde = Ytilde
         # te,tmモードおける、上側境界の境界係数の計算
         Yhat = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
         Zhat = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
@@ -213,15 +219,15 @@ class Subsurface1D:
         if self.src_layer == 1:
             U_te[self.src_layer - 1] = 0
             U_tm[self.src_layer - 1] = 0
-            D_te[self.src_layer - 1] = self.kernel_te_down_sign * r_te[self.src_layer - 1] * np.exp(
-                -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0]))
+            D_te[self.src_layer - 1] = self.kernel_te_down_sign * r_te[self.src_layer - 1] \
+                * np.exp(-u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz))
             D_tm[self.src_layer - 1] = self.kernel_tm_down_sign * r_tm[self.src_layer - 1] * np.exp(
-                -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz[0]))
+                -u[self.src_layer - 1] * (self.depth[self.src_layer - 1] - self.sz))
         elif self.src_layer == self.num_layer:
             U_te[self.src_layer - 1] = self.kernel_te_up_sign * R_te[self.src_layer - 1] * np.exp(
-                u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz[0]))
+                u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz))
             U_tm[self.src_layer - 1] = self.kernel_tm_up_sign * R_tm[self.src_layer - 1] * np.exp(
-                u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz[0]))
+                u[self.src_layer - 1] * (self.depth[self.src_layer - 2] - self.sz))
             D_te[self.src_layer - 1] = 0
             D_tm[self.src_layer - 1] = 0
         else:
@@ -344,6 +350,8 @@ class Subsurface1D:
         else:
             e_up = np.exp(-u[self.rcv_layer - 1] * (self.rz[0] - self.depth[self.rcv_layer - 2]))
             e_down = np.exp(u[self.rcv_layer - 1] * (self.rz[0] - self.depth[self.rcv_layer - 1]))
+
+        self.r_te = r_te
         return U_te, U_tm, D_te, D_tm, e_up, e_down
 
     def in_which_layer(self, z):
