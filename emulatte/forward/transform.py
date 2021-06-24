@@ -1,5 +1,5 @@
 import numpy as np
-from emulay.forward import kernels, filters
+from emulatte.forward import kernels, filters
 
 class HankelTransformFunctions:
     @staticmethod

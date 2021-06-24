@@ -5,7 +5,7 @@ import scipy.io
 from scipy.special import erf, erfc
 import os
 
-from emulay.forward.filters import load_hankel_filter, load_fft_filter
+from emulatte.forward.filters import load_hankel_filter, load_fft_filter
 # from . import filters.load_fft_filter
 
 

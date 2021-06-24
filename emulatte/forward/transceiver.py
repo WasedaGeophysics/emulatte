@@ -1,5 +1,5 @@
 import numpy as np
-from emulay.forward import transform
+from emulatte.forward import transform
 
 class VMD:
     def __init__(

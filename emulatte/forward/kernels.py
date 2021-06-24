@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import erf, erfc
-from emulay.forward.utils import kroneckers_delta
+from emulatte.forward.utils import kroneckers_delta
 
 def compute_kernel_vmd(mdl):
     U_te, U_tm, D_te, D_tm, e_up, e_down = mdl.compute_coefficients()
