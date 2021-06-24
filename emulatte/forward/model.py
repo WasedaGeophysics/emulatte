@@ -158,7 +158,7 @@ class Subsurface1D:
         #return to self
         self.ztilde = ztilde
         self.ytilde = ytilde
-        self.u
+        self.u = u
 
         #TE/TM mode 境界係数
         r_te = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
