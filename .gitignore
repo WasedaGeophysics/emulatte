@@ -1,5 +1,6 @@
 .vscode/
 .test/
+emulatte/forward/__pycache__/
 .ipynb_checkpoints
 *.DS_Store
 w1dem_old.py
