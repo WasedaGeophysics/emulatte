@@ -166,6 +166,7 @@ class Subsurface1D:
         R_te = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
         R_tm = np.ones((self.num_layer, self.filter_length, self.num_dipole), dtype=np.complex)
 
+        #送受信層index+1　for コード短縮
         si = self.src_layer
         ri = self.rcv_layer
 
