@@ -635,7 +635,7 @@ class BaseEm(metaclass=ABCMeta):
                       / (2 * np.pi * self.r ** 3)
             amp_tm_ey_1 = -(self.ztilda * self.ytilda)[0,self.tlayer - 1]  * (self.y - self.ty[0]) ** 2  \
                        / (4 * np.pi * self.ytilda[0, self.rlayer - 1] * self.r ** 2)
-            amp_tm_ey_2 = --(self.ztilda * self.ytilda)[0,self.tlayer - 1]/ (4 * np.pi * self.ytilda[0, self.rlayer - 1]) \
+            amp_tm_ey_2 = (self.ztilda * self.ytilda)[0,self.tlayer - 1]/ (4 * np.pi * self.ytilda[0, self.rlayer - 1]) \
                      * (2 * (self.y - self.ty[0]) ** 2 / self.r ** 3 - 1 / self.r)
             amp_te_ey_1 = self.ztilda[0, self.tlayer - 1] * (self.x - self.tx[0]) ** 2 / (4 * np.pi * self.r ** 2)
             amp_te_ey_2 = - self.ztilda[0, self.tlayer - 1]  / (4 * np.pi) \
