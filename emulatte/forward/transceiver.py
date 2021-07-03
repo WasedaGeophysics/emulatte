@@ -59,10 +59,16 @@ class Core:
                     freq_ans[index,4] = hankel_result["h_y"]
                     freq_ans[index,5] = hankel_result["h_z"]
 
-                f = interpolate.interp1d(2*np.pi*freq, freq_ans.T, kind='cubic', fill_value="extrapolate")
+                f = interpolate.interp1d(
+                        2*np.pi*freq, freq_ans.T,
+                        kind='cubic', fill_value="extrapolate"
+                    )
 
                 for index, time in enumerate(self.freqtime):
-                    time_ans = transform.FourierTransform.fast_fourier_transform(model, f, time, time_diff)
+                    time_ans = \
+                        transform.FourierTransform.fast_fourier_transform(
+                            model, f, time, time_diff
+                        )
                     ans[index, 0] = time_ans[0]
                     ans[index, 1] = time_ans[1]
                     ans[index, 2] = time_ans[2]
@@ -76,7 +82,11 @@ class Core:
                 return ans, self.freqtime
             # Adaptive Convolution
             elif td_transform == 'DLAG':
-                nb = int(np.fix(10 * np.log(self.freqtime[-1] / self.freqtime[0])) + 1)
+                nb = int(
+                        np.fix(
+                            10 * np.log(self.freqtime[-1] / self.freqtime[0])
+                        ) + 1
+                     )
                 ans = np.zeros((nb, 6), dtype=complex)
                 dans = {
                     "e_x": None, "e_y": None, "e_z": None,
@@ -85,11 +95,15 @@ class Core:
                 emfield = list(dans.keys())
                 if not time_diff:
                     for ii, emfield in enumerate(emfield):
-                        time_ans, arg = transform.FourierTransform.dlagf0em(model, nb, emfield)
+                        time_ans, arg = transform.FourierTransform.dlagf0em(
+                            model, nb, emfield
+                        )
                         ans[:, ii] = time_ans
                 else:
                     for ii, emfield in enumerate(emfield):
-                        time_ans, arg = transform.FourierTransform.dlagf1em(transmitter, nb, emfield)
+                        time_ans, arg = transform.FourierTransform.dlagf1em(
+                            transmitter, nb, emfield
+                        )
                         ans[:, ii] = time_ans
                 ans = - 2 / np.pi * self.moment * ans
                 dans["e_x"] = ans[:, 0]
@@ -123,7 +137,7 @@ class HMDx(Core):
     """
     def __init__(self, freqtime, dipole_moment=1):
         super().__init__(freqtime)
-        self.moment = dipole_mom
+        self.moment = dipole_moment
         self.num_dipole = 1
         self.kernel_te_up_sign = -1
         self.kernel_te_down_sign = 1
@@ -138,8 +152,7 @@ class HMDy(Core):
     """
     def __init__(self, freqtime, dipole_moment=1):
         super().__init__(freqtime)
-        self.direstion = direction
-        self.moment = dipole_mom
+        self.moment = dipole_moment
         self.num_dipole = 1
         self.kernel_te_up_sign = -1
         self.kernel_te_down_sign = 1
