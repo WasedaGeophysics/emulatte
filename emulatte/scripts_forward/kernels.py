@@ -172,7 +172,7 @@ def compute_kernel_coincident(model, omega):
                     * np.exp(-model.u[model.tmt_layer - 1] \
                             * np.abs(model.rz - model.tz))
     kernel = []
-    besk1rad = jn(1, model.lambda_ * model.transmitter.radius)
+    besk1rad = jn(1, model.lambda_ * model.tmr.radius)
     kernel_h_z = kernel_te * model.lambda_ * besk1rad \
                     / model.u[model.tmt_layer - 1]
     kernel.append(kernel_h_z)
