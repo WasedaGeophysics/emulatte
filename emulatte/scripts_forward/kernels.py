@@ -1,25 +1,25 @@
 import numpy as np
 from scipy.special import erf, erfc, jn
-from emulatte.forward.utils import kroneckers_delta
+from emulatte.scripts_forward.utils import kroneckers_delta
 
 def compute_kernel_vmd(model, omega):
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rcv_layer - 1] * e_up \
                     + D_te[model.rcv_layer - 1] * e_down \
                     + kroneckers_delta(model.rcv_layer, model.tmt_layer) \
-                    * np.exp(-model.model.u[model.tmt_layer - 1] \
+                    * np.exp(-model.u[model.tmt_layer - 1] \
                         * np.abs(model.rz - model.tz))
     kernel_te_hr = U_te[model.rcv_layer - 1] * e_up \
                     - D_te[model.rcv_layer - 1] * e_down \
                     +  kroneckers_delta(model.rcv_layer, model.tmt_layer) \
                     * (model.rz - model.tz) / np.abs(model.rz - model.tz) \
-                    * np.exp(-model.model.u[model.tmt_layer - 1] \
+                    * np.exp(-model.u[model.tmt_layer - 1] \
                         * np.abs(model.rz - model.tz))
     kernel_e_phi = kernel_te * model.lambda_ ** 2 \
-                    / model.model.u[model.tmt_layer - 1]
+                    / model.u[model.tmt_layer - 1]
     kernel_h_r = kernel_te_hr * model.lambda_ ** 2 \
-                    * model.model.u[model.rcv_layer - 1] \
-                    / model.model.u[model.tmt_layer - 1]
+                    * model.u[model.rcv_layer - 1] \
+                    / model.u[model.tmt_layer - 1]
     kernel_h_z = kernel_e_phi * model.lambda_
     kernel = []
     kernel.extend((kernel_e_phi, kernel_h_r, kernel_h_z))

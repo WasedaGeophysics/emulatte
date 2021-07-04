@@ -1,13 +1,14 @@
 import numpy as np
+from emulatte.scripts_forward.utils import ndarray_filter
 
 class Subsurface1D:
     #== CONSTRUCTOR ======================================#
     def __init__(self, thicks, displacement_current=False):
+        thicks = ndarray_filter(thicks, 'thicks')
         self.thicks = thicks
         self.depth = np.array([0, *np.cumsum(thicks)]) #層境界深度
         self.num_layer = len(thicks) + 2 #空気（水）層と最下層を含める
         self.displacement_current = displacement_current
-
         # PERMITTIVITY OF VACUUM
         epsln0 = 8.85418782 * 1e-12
         self.epsln0 = epsln0
@@ -16,38 +17,35 @@ class Subsurface1D:
         mu0 = 4. * np.pi * 1e-7
         self.mu0 = mu0
         self.mu = np.ones(self.num_layer) * mu0
-    
-    #== CLASS DESCRIPTION ================================#
-    def __str__(self):
-        description =(
-            'Horizontal Multi-Layered Model \n'
-            'ここに使い方の説明を書く'
-        )
-        return description
+        # Spectre IP
+        self.sip_mode = False
     
     #== CHARACTERIZING LAYERS ============================#
     def add_conductivity(self, sigma):
-        self.sigma = sigma
+        self.sigma = ndarray_filter(sigma, 'sigma')
 
-    def add_resistivity(self, rho):
-        self.sigma = 1/rho
+    def add_resistivity(self, res):
+        self.res = ndarray_filter(res, 'res')
+        self.sigma = 1 / res
     
-    # IP
-    def add_colecole_params(self, freqs, rho0, m, tau, c):
-        # 要検討
-        omega = 2 * np.pi * freqs
-        im = 1 - (1j * omega * tau) ** c
-        res = rho0 * (1 - m * (1 - 1/im))
-        self.sigma = 1/res
-        #return res
+    # SIP
+    def add_colecole_params(self, dres, charg, tconst, fconst):
+        self.dres = ndarray_filter(dres, 'dres')
+        self.charg = ndarray_filter(charg, 'charg')
+        self.tconst = ndarray_filter(tconst, 'tconst')
+        self.fconst = ndarray_filter(fconst, 'fconst')
+        self.sip_mode = True
     
+    # 実装予定
     def add_permittivity(self, epsln, relative=False):
+        epsln = ndarray_filter(epsln, 'epsln')
         if relative:
             self.epsln *= epsln
         else:
             self.epsln = epsln
 
     def add_permeability(self, mu, relative=False):
+        mu = ndarray_filter(mu, 'mu')
         if relative:
             self.mu *= mu
         else:
@@ -64,6 +62,9 @@ class Subsurface1D:
         self.kernel_te_down_sign = transceiver.kernel_te_down_sign
         self.kernel_tm_up_sign = transceiver.kernel_tm_up_sign
         self.kernel_tm_down_sign = transceiver.kernel_tm_down_sign
+        tc = ndarray_filter(tc, 'tc')
+        rc = ndarray_filter(rc, 'rc')
+
         tx, ty, tz = np.array([tc]).T
         rx, ry, rz = np.array([rc]).T
         r = np.sqrt((rx - tx) ** 2 + (ry - ty) ** 2)
@@ -93,8 +94,6 @@ class Subsurface1D:
         self.cos_phi = cos_phi
         self.sin_phi = sin_phi
 
-
-    
     #== MAIN EXECUTOR ====================================#
     def emulate(self, hankel_filter, time_diff=False, td_transform=None):
 
@@ -117,7 +116,7 @@ class Subsurface1D:
         
         return ans, freqtime
 
-    #== INNER FUNCTIONS ===============================================#
+    #== COMPUTE COEFFICIENTS ===============================================#
     def compute_coefficients(self, omega):
         ztilde = np.ones((1, self.num_layer, 1), dtype=complex)
         ytilde = np.ones((1, self.num_layer, 1), dtype=complex)
@@ -139,6 +138,12 @@ class Subsurface1D:
                 dtype=complex
             )
 
+        # Cole-Cole の複素比抵抗モデル
+        if self.sip_mode == True:
+            im = 1 - (1j * omega * self.tconst) ** self.fconst
+            res = self.dres * (1 - self.charg * (1 - 1 / im))
+            self.sigma = 1 / res
+        
         # インピーダンス＆アドミタンス
         ztilde[0, 0, 0] = 1j * omega * self.mu[0]
         ztilde[0, 1:self.num_layer, 0] = 1j * omega \
@@ -147,18 +152,16 @@ class Subsurface1D:
             ytilde[0, 0, 0] = 1j * omega * self.epsln[0]
         else:
             ytilde[0, 0, 0] = 1e-13
-        ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1]
-        #+ 1j * omega * self.epsln0
+        ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1] + 1j * omega * self.epsln0
 
 
-        # 波数 ColeColeと一緒に考えたいところ
-
-        #k[0] = (omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
-        #k[1:] = (omega ** 2.0 * self.mu[1:] * self.epsln[1:] - 1j * omega * self.mu[1:] * self.sigma) ** 0.5
+        k[0] = (omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
+        k[1:] = (omega ** 2.0 * self.mu[1:] * self.epsln[1:] - 1j * omega * self.mu[1:] * self.sigma) ** 0.5
         # 誘電率を無視する近似
-        k[0] = 0
-        k[1:self.num_layer] = (- 1j * omega * self.mu[1:self.num_layer] \
-                                * self.sigma) ** 0.5
+        #k[0] = 0
+        #k[1:self.num_layer] = (- 1j * omega * self.mu[1:self.num_layer] \
+        #                        * self.sigma) ** 0.5
+
         self.k = k
 
 
@@ -341,31 +344,31 @@ class Subsurface1D:
 
         # for the layers above the tmt_layer
         if ri < ti:
-            exp_termi = np.exp(-u[ti - 1] * (self.tz - self.depth[ti - 2]))
-            exp_termii = np.exp(-u[ti - 1] \
-                            * (self.depth[ti - 1] - self.depth[ti - 2]))
-
             if ti == self.num_layer:
+                exp_term = np.exp(-u[ti - 1] * (self.tz - self.depth[ti - 2]))
                 D_te[ti - 2] = (Y[ti - 2] * (1 + R_te[ti - 1]) 
                                     + Y[ti - 1] * (1 - R_te[ti - 1])) \
                                 / (2 * Y[ti - 2]) \
-                                * self.kernel_te_up_sign * exp_termi
+                                * self.kernel_te_up_sign * exp_term
                 D_tm[ti - 2] = (Z[ti - 2] * (1 + R_tm[ti - 1]) \
                                     + Z[ti - 1] * (1 - R_tm[ti - 1])) \
                                 / (2 * Z[ti - 2]) \
-                                * self.kernel_tm_up_sign * exp_termi
+                                * self.kernel_tm_up_sign * exp_term
 
             elif ti != 1 and ti != self.num_layer:
+                exp_term = np.exp(-u[ti - 1] * (self.tz - self.depth[ti - 2]))
+                exp_termii = np.exp(-u[ti - 1] \
+                            * (self.depth[ti - 1] - self.depth[ti - 2]))
                 D_te[ti - 2] = (Y[ti - 2] * (1 + R_te[ti - 1]) \
                                     + Y[ti - 1] * (1 - R_te[ti - 1])) \
                                 / (2 * Y[ti - 2]) * (D_te[ti - 1] \
                                 * exp_termii \
-                                + self.kernel_te_up_sign * exp_termi)
+                                + self.kernel_te_up_sign * exp_term)
                 D_tm[ti - 2] = (Z[ti - 2] * (1 + R_tm[ti - 1]) \
                                     + Z[ti - 1] * (1 - R_tm[ti - 1])) \
                                 / (2 * Z[ti - 2]) * (D_tm[ti - 1] \
                                     * exp_termii \
-                                    + self.kernel_tm_up_sign * exp_termi)
+                                    + self.kernel_tm_up_sign * exp_term)
 
             for jj in range(ti - 2, 0, -1):
                 exp_termjj = np.exp(-u[jj] \
@@ -455,9 +458,9 @@ class Subsurface1D:
         return U_te, U_tm, D_te, D_tm, e_up, e_down
 
     def in_which_layer(self, z):
-        layer_id = self.num_layer
-        for i in range(self.num_layer+1):
-            if z <= self.depth[i]:
+        layer_id = 1
+        for i in range(self.num_layer-1, 0, -1):
+            if z >= self.depth[i-1]:
                 layer_id = i + 1
                 break
             else:

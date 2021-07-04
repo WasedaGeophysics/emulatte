@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import interpolate
-from emulatte.forward import transform
+from emulatte.scripts_forward import transform
 class Core:
     def __init__(self, freqtime):
         self.name = self.__class__.__name__.lower()

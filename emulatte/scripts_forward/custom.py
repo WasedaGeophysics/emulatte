@@ -1,5 +1,5 @@
 import numpy as np
-from emulatte.forward import model, transceiver
+from emulatte.scripts_forward import modelw, transceiver
 
 class GroundedWire(model.Subsurface1D):
     None
