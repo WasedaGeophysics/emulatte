@@ -26,7 +26,6 @@
     model = fwd.model(thicks)
     vmd = fwd.transceiver('VMD', freqtime, dipole_moment=1)
     model.add_resistivity(res)
-    model.add_permeability(res)
 
     ...
 
