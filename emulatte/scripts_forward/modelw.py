@@ -26,7 +26,7 @@ class Subsurface1D:
 
     def add_resistivity(self, res):
         self.res = ndarray_filter(res, 'res')
-        self.sigma = 1 / res
+        self.sigma = 1 / self.res
     
     # SIP
     def add_colecole_params(self, dres, charg, tconst, fconst):

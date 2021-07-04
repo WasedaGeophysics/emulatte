@@ -5,7 +5,7 @@ def model(thicks, **kwargs):
     mdl = modelw.Subsurface1D(thicks, **kwargs)
     return mdl
 
-def transceiver(name, freqtime, **kwargs):
+def transmitter(name, freqtime, **kwargs):
     cls = globals()[name]
-    transmitter = cls(freqtime, **kwargs)
-    return 
+    tmr = cls(freqtime, **kwargs)
+    return tmr
