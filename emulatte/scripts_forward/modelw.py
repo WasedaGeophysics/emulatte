@@ -52,16 +52,11 @@ class Subsurface1D:
             self.mu = mu
 
     #== SET UP ===========================================#
-    def locate(self, transceiver, tc, rc):
+    def locate(self, transmitter, tc, rc):
         """
         計算に必要な送受信機の情報をモデルに引き渡す
         """
-        self.tcv = transceiver
-        self.num_dipole = transceiver.num_dipole
-        self.kernel_te_up_sign = transceiver.kernel_te_up_sign
-        self.kernel_te_down_sign = transceiver.kernel_te_down_sign
-        self.kernel_tm_up_sign = transceiver.kernel_tm_up_sign
-        self.kernel_tm_down_sign = transceiver.kernel_tm_down_sign
+        self.tmr = transmitter
         tc = ndarray_filter(tc, 'tc')
         rc = ndarray_filter(rc, 'rc')
 
@@ -111,7 +106,7 @@ class Subsurface1D:
             if self.tz == self.rz:
                 self.tz -= delta_z
 
-        ans, freqtime = self.tcv.get_result(
+        ans, freqtime = self.tmr.get_result(
                         self, time_diff=time_diff, td_transform=td_transform)
         
         return ans, freqtime
@@ -122,19 +117,19 @@ class Subsurface1D:
         ytilde = np.ones((1, self.num_layer, 1), dtype=complex)
         k = np.zeros(self.num_layer, dtype=np.complex)
         u = np.ones(
-                (self.num_layer, self.filter_length, self.num_dipole),
+                (self.num_layer, self.filter_length, self.tmr.num_dipole),
                 dtype=complex
             )
         tanhuh = np.zeros(
-                (self.num_layer - 1, self.filter_length, self.num_dipole),
+                (self.num_layer - 1, self.filter_length, self.tmr.num_dipole),
                 dtype=complex
             )
         Y = np.ones(
-                (self.num_layer, self.filter_length, self.num_dipole),
+                (self.num_layer, self.filter_length, self.tmr.num_dipole),
                 dtype=complex
             )
         Z = np.ones(
-                (self.num_layer, self.filter_length, self.num_dipole),
+                (self.num_layer, self.filter_length, self.tmr.num_dipole),
                 dtype=complex
             )
 
@@ -186,19 +181,19 @@ class Subsurface1D:
 
         #TE/TM mode 境界係数
         r_te = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         r_tm = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole), 
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole), 
                     dtype=np.complex
                 )
         R_te = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         R_tm = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
 
@@ -207,11 +202,11 @@ class Subsurface1D:
         ri = self.rcv_layer
 
         Ytilde = np.zeros(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         Ztilde = np.zeros(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         Ytilde[-1] = Y[-1]  # (1) Ytilde{self.num_layer}
@@ -237,11 +232,11 @@ class Subsurface1D:
             r_tm[ti - 1] = (Z[ti - 1] - Ztilde[ti]) / (Z[ti - 1] + Ztilde[ti])
 
         Yhat = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=complex
                 )
         Zhat = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=complex
                 )
         Yhat[0] = Y[0]  # (1)Y{0}
@@ -271,19 +266,19 @@ class Subsurface1D:
                                 / (Z[ti - 1] + Zhat[ti - 2])
 
         U_te = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         U_tm = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         D_te = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
         D_tm = np.ones(
-                    (self.num_layer, self.filter_length, self.num_dipole),
+                    (self.num_layer, self.filter_length, self.tmr.num_dipole),
                     dtype=np.complex
                 )
 
@@ -291,17 +286,17 @@ class Subsurface1D:
         if ti == 1:
             U_te[ti - 1] = 0
             U_tm[ti - 1] = 0
-            D_te[ti - 1] = self.kernel_te_down_sign * r_te[ti - 1] \
+            D_te[ti - 1] = self.tmr.kernel_te_down_sign * r_te[ti - 1] \
                             * np.exp(-u[ti - 1] \
                             * (self.depth[ti - 1] - self.tz))
-            D_tm[ti - 1] = self.kernel_tm_down_sign * r_tm[ti - 1] \
+            D_tm[ti - 1] = self.tmr.kernel_tm_down_sign * r_tm[ti - 1] \
                             * np.exp(-u[ti - 1] \
                             * (self.depth[ti - 1] - self.tz))
         elif ti == self.num_layer:
-            U_te[ti - 1] = self.kernel_te_up_sign * R_te[ti - 1] \
+            U_te[ti - 1] = self.tmr.kernel_te_up_sign * R_te[ti - 1] \
                             * np.exp(u[ti - 1] 
                                     * (self.depth[ti - 2] - self.tz))
-            U_tm[ti - 1] = self.kernel_tm_up_sign * R_tm[ti - 1] \
+            U_tm[ti - 1] = self.tmr.kernel_tm_up_sign * R_tm[ti - 1] \
                             * np.exp(u[ti - 1] 
                                     * (self.depth[ti - 2] - self.tz))
             D_te[ti - 1] = 0
@@ -320,27 +315,27 @@ class Subsurface1D:
 
             U_te[ti - 1] = 1 / R_te[ti - 1] \
                             * (1 - R_te[ti - 1] * r_te[ti - 1] * exp_term1) \
-                            * (self.kernel_te_down_sign \
+                            * (self.tmr.kernel_te_down_sign \
                                 * r_te[ti - 1] * exp_term2u \
-                                + self.kernel_te_up_sign * exp_term3u)
+                                + self.tmr.kernel_te_up_sign * exp_term3u)
 
             U_tm[ti - 1] = 1 / R_tm[ti - 1] \
                             * (1 - R_tm[ti - 1] * r_tm[ti - 1] * exp_term1) \
-                            * (self.kernel_tm_down_sign \
+                            * (self.tmr.kernel_tm_down_sign \
                                 * r_tm[ti - 1] * exp_term2u \
-                                + self.kernel_tm_up_sign * exp_term3u)
+                                + self.tmr.kernel_tm_up_sign * exp_term3u)
 
             D_te[ti - 1] = 1 / r_te[ti - 1] \
                             * (1 - R_te[ti - 1] * r_te[ti - 1] * exp_term1) \
-                            * (self.kernel_te_up_sign \
+                            * (self.tmr.kernel_te_up_sign \
                                 * R_te[ti - 1] * exp_term2d \
-                                + self.kernel_te_down_sign * exp_term3d)
+                                + self.tmr.kernel_te_down_sign * exp_term3d)
 
             D_tm[ti - 1] = 1 / r_tm[ti - 1] \
                             * (1 - R_tm[ti - 1] * r_tm[ti - 1] * exp_term1) \
-                            * (self.kernel_tm_up_sign \
+                            * (self.tmr.kernel_tm_up_sign \
                                 * R_tm[ti - 1] * exp_term2d \
-                                + self.kernel_tm_down_sign * exp_term3d)
+                                + self.tmr.kernel_tm_down_sign * exp_term3d)
 
         # for the layers above the tmt_layer
         if ri < ti:
@@ -349,11 +344,11 @@ class Subsurface1D:
                 D_te[ti - 2] = (Y[ti - 2] * (1 + R_te[ti - 1]) 
                                     + Y[ti - 1] * (1 - R_te[ti - 1])) \
                                 / (2 * Y[ti - 2]) \
-                                * self.kernel_te_up_sign * exp_term
+                                * self.tmr.kernel_te_up_sign * exp_term
                 D_tm[ti - 2] = (Z[ti - 2] * (1 + R_tm[ti - 1]) \
                                     + Z[ti - 1] * (1 - R_tm[ti - 1])) \
                                 / (2 * Z[ti - 2]) \
-                                * self.kernel_tm_up_sign * exp_term
+                                * self.tmr.kernel_tm_up_sign * exp_term
 
             elif ti != 1 and ti != self.num_layer:
                 exp_term = np.exp(-u[ti - 1] * (self.tz - self.depth[ti - 2]))
@@ -363,12 +358,12 @@ class Subsurface1D:
                                     + Y[ti - 1] * (1 - R_te[ti - 1])) \
                                 / (2 * Y[ti - 2]) * (D_te[ti - 1] \
                                 * exp_termii \
-                                + self.kernel_te_up_sign * exp_term)
+                                + self.tmr.kernel_te_up_sign * exp_term)
                 D_tm[ti - 2] = (Z[ti - 2] * (1 + R_tm[ti - 1]) \
                                     + Z[ti - 1] * (1 - R_tm[ti - 1])) \
                                 / (2 * Z[ti - 2]) * (D_tm[ti - 1] \
                                     * exp_termii \
-                                    + self.kernel_tm_up_sign * exp_term)
+                                    + self.tmr.kernel_tm_up_sign * exp_term)
 
             for jj in range(ti - 2, 0, -1):
                 exp_termjj = np.exp(-u[jj] \
@@ -396,11 +391,11 @@ class Subsurface1D:
                 U_te[ti] = (Y[ti] * (1 + r_te[ti - 1]) \
                                 + Y[ti - 1] * (1 - r_te[ti - 1])) \
                             / (2 * Y[ti]) \
-                            * self.kernel_te_down_sign * exp_term
+                            * self.tmr.kernel_te_down_sign * exp_term
                 U_tm[ti] = (Z[ti] * (1 + r_tm[ti - 1]) \
                                 + Z[ti - 1] * (1 - r_tm[ti - 1])) \
                             / (2 * Z[ti]) \
-                            * self.kernel_tm_down_sign * exp_term
+                            * self.tmr.kernel_tm_down_sign * exp_term
 
             elif ti != 1 and ti != self.num_layer:
                 exp_termi = np.exp(-u[ti - 1] \
@@ -411,12 +406,12 @@ class Subsurface1D:
                                     + Y[ti - 1] * (1 - r_te[ti - 1])) \
                                 / (2 * Y[ti]) \
                                 * (U_te[ti - 1] * exp_termi \
-                                    + self.kernel_te_down_sign * exp_termii)
+                                    + self.tmr.kernel_te_down_sign * exp_termii)
                 U_tm[ti] = (Z[ti] * (1 + r_tm[ti - 1]) + Z[ti - 1] \
                                     * (1 - r_tm[ti - 1])) \
                                 / (2 * Z[ti]) \
                                 * (U_tm[ti - 1] * exp_termi \
-                                    + self.kernel_tm_down_sign * exp_termii)
+                                    + self.tmr.kernel_tm_down_sign * exp_termii)
 
             for jj in range(ti + 2, self.num_layer + 1):
                 exp_term = np.exp(-u[jj - 2] \
@@ -441,14 +436,14 @@ class Subsurface1D:
         # compute Damping coefficient
         if ri == 1:
             e_up = np.zeros(
-                        (self.filter_length, self.num_dipole),
+                        (self.filter_length, self.tmr.num_dipole),
                         dtype=np.complex
                     )
             e_down = np.exp(u[ri - 1] * (self.rz - self.depth[ri - 1]))
         elif ri == self.num_layer:
             e_up = np.exp(-u[ri - 1] * (self.rz - self.depth[ri - 2]))
             e_down = np.zeros(
-                        (self.filter_length, self.num_dipole),
+                        (self.filter_length, self.tmr.num_dipole),
                         dtype=np.complex
                     )
         else:

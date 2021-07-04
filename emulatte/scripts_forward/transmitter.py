@@ -102,7 +102,7 @@ class Core:
                 else:
                     for ii, emfield in enumerate(emfield):
                         time_ans, arg = transform.FourierTransform.dlagf1em(
-                            transmitter, nb, emfield
+                            model, nb, emfield
                         )
                         ans[:, ii] = time_ans
                 ans = - 2 / np.pi * self.moment * ans
@@ -119,7 +119,7 @@ class VMD(Core):
     Vertical Magnetic Dipole
     Horizontal Co-Planar (HCP __ -> __ )
     """
-    def __init__(self, freqtime, dipole_moment=1):
+    def __init__(self, freqtime, dipole_moment):
         super().__init__(freqtime)
         #VMD固有設定値
         self.moment = dipole_moment
@@ -135,7 +135,7 @@ class HMDx(Core):
     Horizontal Magnetic Dipole x 
         Vertial Co-axial (VCA  | -> | )
     """
-    def __init__(self, freqtime, dipole_moment=1):
+    def __init__(self, freqtime, dipole_moment):
         super().__init__(freqtime)
         self.moment = dipole_moment
         self.num_dipole = 1
@@ -150,7 +150,7 @@ class HMDy(Core):
     Horizontal Magnetic Dipole y 
         Vertial Co-planar (VCP  o -> o)
     """
-    def __init__(self, freqtime, dipole_moment=1):
+    def __init__(self, freqtime, dipole_moment):
         super().__init__(freqtime)
         self.moment = dipole_moment
         self.num_dipole = 1

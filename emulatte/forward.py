@@ -1,5 +1,5 @@
 from emulatte.scripts_forward import modelw
-from emulatte.scripts_forward.transceiver import *
+from emulatte.scripts_forward.transmitter import *
 
 def model(thicks, **kwargs):
     mdl = modelw.Subsurface1D(thicks, **kwargs)
@@ -7,5 +7,5 @@ def model(thicks, **kwargs):
 
 def transceiver(name, freqtime, **kwargs):
     cls = globals()[name]
-    tcv = cls(freqtime, **kwargs)
-    return tcv
+    transmitter = cls(freqtime, **kwargs)
+    return 
