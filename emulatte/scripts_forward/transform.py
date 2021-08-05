@@ -836,9 +836,10 @@ class FourierTransform:
         e = 1.10517091807564762e0
         er = .904837418035959573e0
         nofun = 0
-        base, cos, sin = load_fft_filter('anderson_sin_cos_filter_787')
+        base, cos, sin = filters.load_fft_filter(
+                            'anderson_sin_cos_filter_787')
         ffl = len(base)
-        bmax = model.tmr.freqtimes[-1]
+        bmax = model.tmr.freqtime[-1]
         tol = 1e-12
         ntol = 1
         key = np.zeros((1, ffl))
@@ -964,4 +965,4 @@ class FourierTransform:
             dans[istore-1] = dsum
             continue
         dans = dans / arg
-        return dans
+        return dans, arg
