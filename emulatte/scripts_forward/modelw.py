@@ -1,9 +1,17 @@
+#emulatte/scripts_forward/modelw.py
+# -*- coding: utf-8 -*-
+"""
+モデルクラス
+"""
 import numpy as np
 from emulatte.scripts_forward.utils import ndarray_filter
 
 class Subsurface1D:
     #== CONSTRUCTOR ======================================#
     def __init__(self, thicks, displacement_current=False):
+        """
+
+        """
         thicks = ndarray_filter(thicks, 'thicks')
         self.thicks = thicks
         self.depth = np.array([0, *np.cumsum(thicks)]) #層境界深度
@@ -22,14 +30,23 @@ class Subsurface1D:
     
     #== CHARACTERIZING LAYERS ============================#
     def add_conductivity(self, sigma):
+        """
+
+        """
         self.sigma = ndarray_filter(sigma, 'sigma')
 
     def add_resistivity(self, res):
+        """
+
+        """
         self.res = ndarray_filter(res, 'res')
         self.sigma = 1 / self.res
     
     # SIP
     def add_colecole_params(self, dres, charg, tconst, fconst):
+        """
+        
+        """
         self.dres = ndarray_filter(dres, 'dres')
         self.charg = ndarray_filter(charg, 'charg')
         self.tconst = ndarray_filter(tconst, 'tconst')
@@ -38,6 +55,9 @@ class Subsurface1D:
     
     # 実装予定
     def add_permittivity(self, epsln, relative=False):
+        """
+
+        """
         epsln = ndarray_filter(epsln, 'epsln')
         if relative:
             self.epsln *= epsln
@@ -45,6 +65,9 @@ class Subsurface1D:
             self.epsln = epsln
 
     def add_permeability(self, mu, relative=False):
+        """
+
+        """
         mu = ndarray_filter(mu, 'mu')
         if relative:
             self.mu *= mu
@@ -91,7 +114,9 @@ class Subsurface1D:
 
     #== MAIN EXECUTOR ====================================#
     def emulate(self, hankel_filter, time_diff=False, td_transform=None):
+        """
 
+        """
         if not td_transform:
             self.domain = 'Freq'
         else:
@@ -113,6 +138,9 @@ class Subsurface1D:
 
     #== COMPUTE COEFFICIENTS ===============================================#
     def compute_coefficients(self, omega):
+        """
+
+        """
         ztilde = np.ones((1, self.num_layer, 1), dtype=complex)
         ytilde = np.ones((1, self.num_layer, 1), dtype=complex)
         k = np.zeros(self.num_layer, dtype=np.complex)
@@ -453,6 +481,9 @@ class Subsurface1D:
         return U_te, U_tm, D_te, D_tm, e_up, e_down
 
     def in_which_layer(self, z):
+        """
+
+        """
         layer_id = 1
         for i in range(self.num_layer-1, 0, -1):
             if z >= self.depth[i-1]:

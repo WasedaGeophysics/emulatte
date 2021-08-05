@@ -1,9 +1,38 @@
+#emulatte/scripts_forward/transform.py
+# -*- coding: utf-8 -*-
+"""
+hankel変換やFD<->TD変換に用いるクラスメソッド
+
+Class List
+* HankelTransform
+* FourierTransform
+"""
 import numpy as np
 from emulatte.scripts_forward import kernels, filters
 
 class HankelTransform:
+    """Hankel Transform
+    Hankel変換による応答の計算
+
+    Index:
+        vmd
+        hmdx
+        hmdy
+        ved
+        hedx
+        hedy
+        circular_loop
+        coincident_loop
+        grounded_wire
+        loop_source
+        x_line_source
+        y_line_source
+    """
     @staticmethod
     def vmd(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base/model.r
@@ -25,6 +54,9 @@ class HankelTransform:
 
     @staticmethod
     def hmdx(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -113,6 +145,9 @@ class HankelTransform:
 
     @staticmethod
     def hmdy(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -203,6 +238,9 @@ class HankelTransform:
     
     @staticmethod
     def ved(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -225,6 +263,9 @@ class HankelTransform:
     
     @staticmethod
     def hedx(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -317,6 +358,9 @@ class HankelTransform:
     
     @staticmethod
     def hedy(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -406,6 +450,9 @@ class HankelTransform:
     
     @staticmethod
     def circular_loop(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -431,6 +478,9 @@ class HankelTransform:
     
     @staticmethod
     def coincident_loop(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -447,6 +497,9 @@ class HankelTransform:
     
     @staticmethod
     def grounded_wire(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         y_base_wire = np.ones((model.filter_length, model.tmr.num_dipole)) \
@@ -549,6 +602,9 @@ class HankelTransform:
     
     @staticmethod
     def loop_source(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -576,6 +632,9 @@ class HankelTransform:
 
     @staticmethod
     def x_line_source(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r
@@ -602,6 +661,9 @@ class HankelTransform:
 
     @staticmethod
     def y_line_source(model, omega):
+        """
+
+        """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
         model.lambda_ = y_base / model.r

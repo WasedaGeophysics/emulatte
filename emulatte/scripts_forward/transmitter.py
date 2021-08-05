@@ -1,3 +1,8 @@
+#emulatte/scripts_forward/modelw.py
+# -*- coding: utf-8 -*-
+"""
+送信タイプのクラス
+"""
 import numpy as np
 from scipy import interpolate
 from emulatte.scripts_forward import transform

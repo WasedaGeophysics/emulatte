@@ -1,3 +1,8 @@
+#emulatte/scripts_forward/custom.py
+# -*- coding: utf-8 -*-
+"""
+カスタマイズされた実装
+"""
 import numpy as np
 from emulatte.scripts_forward import modelw, transceiver
 

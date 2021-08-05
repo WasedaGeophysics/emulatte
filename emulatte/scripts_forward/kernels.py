@@ -1,8 +1,16 @@
+#emulatte/scripts_forward/kernels.py
+# -*- coding: utf-8 -*-
+"""
+核関数の寄せ集め
+"""
 import numpy as np
 from scipy.special import erf, erfc, jn
 from emulatte.scripts_forward.utils import kroneckers_delta
 
 def compute_kernel_vmd(model, omega):
+    """
+    
+    """
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rcv_layer - 1] * e_up \
                     + D_te[model.rcv_layer - 1] * e_down \
@@ -27,6 +35,9 @@ def compute_kernel_vmd(model, omega):
     return kernel
 
 def compute_kernel_hmd(model, omega):
+    """
+    
+    """
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_tm_er = (-U_tm[model.rcv_layer - 1] * e_up \
                         + D_tm[model.rcv_layer - 1] * e_down \
@@ -73,6 +84,9 @@ def compute_kernel_hmd(model, omega):
     return kernel
 
 def compute_kernel_ved(model, omega):
+    """
+
+    """
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_tm = U_tm[model.rcv_layer - 1] * e_up \
                     + D_tm[model.rcv_layer - 1] * e_down \
@@ -95,6 +109,9 @@ def compute_kernel_ved(model, omega):
     return kernel
 
 def compute_kernel_hed(model, omega):
+    """
+
+    """
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_tm_er = (-U_tm[model.rcv_layer - 1] * e_up \
                         + D_tm[model.rcv_layer - 1] * e_down \
@@ -137,6 +154,9 @@ def compute_kernel_hed(model, omega):
     return kernel
 
 def compute_kernel_circular(model, omega):
+    """
+
+    """
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rcv_layer - 1] * e_up \
                     + D_te[model.rcv_layer - 1] * e_down \
@@ -165,6 +185,9 @@ def compute_kernel_circular(model, omega):
     return kernel
 
 def compute_kernel_coincident(model, omega):
+    """
+
+    """
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rcv_layer - 1] * e_up \
                     + D_te[model.rcv_layer - 1] * e_down \
