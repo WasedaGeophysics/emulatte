@@ -1,8 +1,8 @@
-from emulatte.scripts_forward import modelw
-from emulatte.scripts_forward.transmitter import *
+from emulatte.forwardscr import emgmodel
+from emulatte.forwardscr.transmitter import *
 
 def model(thicks, **kwargs):
-    mdl = modelw.Subsurface1D(thicks, **kwargs)
+    mdl = emgmodel.Subsurface1D(thicks, **kwargs)
     return mdl
 
 def transmitter(name, freqtime, **kwargs):

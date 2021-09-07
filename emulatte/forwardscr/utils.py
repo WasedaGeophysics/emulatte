@@ -7,12 +7,9 @@ def kroneckers_delta(ii, jj):
         return 0
 
 def ndarray_filter(array_like, valiable_name):
-    if type(array_like) == list:
-        array = np.array(array_like)
-    elif type(array_like) == tuple:
-        array = np.array(array_like)
-    elif type(array_like) == np.ndarray:
-        array = array_like
+    types = [list, tuple, np.ndarray]
+    if type(array_like) in types:
+        array = np.array(array_like, dtype=np.float64)
     else:
         print('TypeError : {} must be input as list, tuple or ndarray'.format(
             valiable_name

@@ -5,7 +5,7 @@
 """
 import numpy as np
 from scipy import interpolate
-from emulatte.scripts_forward import transform
+from emulatte.forwardscr import transform
 class Core:
     def __init__(self, freqtime):
         self.name = self.__class__.__name__.lower()
@@ -202,7 +202,7 @@ class CircularLoop(Core):
         super().__init__(freqtime)
         self.current = current
         self.radius = radius
-        self.moment = current * turrns
+        self.moment = current * turns
         self.num_dipole = 1
         self.kernel_te_up_sign = 1
         self.kernel_te_down_sign = 1

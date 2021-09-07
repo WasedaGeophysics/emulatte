@@ -5,7 +5,7 @@
 """
 import numpy as np
 from scipy.special import erf, erfc, jn
-from emulatte.scripts_forward.utils import kroneckers_delta
+from emulatte.forwardscr.utils import kroneckers_delta
 
 def compute_kernel_vmd(model, omega):
     """

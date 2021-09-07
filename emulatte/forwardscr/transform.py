@@ -8,7 +8,7 @@ Class List
 * FourierTransform
 """
 import numpy as np
-from emulatte.scripts_forward import kernels, filters
+from emulatte.forwardscr import kernels, filters
 
 class HankelTransform:
     """Hankel Transform

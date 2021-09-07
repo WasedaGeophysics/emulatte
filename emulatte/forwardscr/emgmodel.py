@@ -1,10 +1,10 @@
 #emulatte/scripts_forward/modelw.py
 # -*- coding: utf-8 -*-
 """
-モデルクラス
+Electromagnetic ground model class group
 """
 import numpy as np
-from emulatte.scripts_forward.utils import ndarray_filter
+from emulatte.forwardscr.utils import ndarray_filter
 
 class Subsurface1D:
     #== CONSTRUCTOR ======================================#
@@ -97,7 +97,7 @@ class Subsurface1D:
         if tz in self.depth:
             tz = tz - delta_z
         if tz == rz:
-            tz -= delta_z
+            tz = tz - delta_z
 
         # 送受信点が含まれる層の特定
         tmt_layer = self.in_which_layer(tz)
@@ -178,15 +178,13 @@ class Subsurface1D:
         ytilde[0, 1:self.num_layer, 0] = self.sigma[0:self.num_layer - 1] + 1j * omega * self.epsln0
 
 
-        k[0] = (omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
-        k[1:] = (omega ** 2.0 * self.mu[1:] * self.epsln[1:] - 1j * omega * self.mu[1:] * self.sigma) ** 0.5
+        #k[0] = (omega ** 2.0 * self.mu[0] * self.epsln[0]) ** 0.5
+        #k[1:] = (omega ** 2.0 * self.mu[1:] * self.epsln[1:] - 1j * omega * self.mu[1:] * self.sigma) ** 0.5
         # 誘電率を無視する近似
-        #k[0] = 0
-        #k[1:self.num_layer] = (- 1j * omega * self.mu[1:self.num_layer] \
-        #                        * self.sigma) ** 0.5
+        k[0] = 0
+        k[1:] = (- 1j * omega * self.mu[1:self.num_layer] * self.sigma) ** 0.5
 
         self.k = k
-
 
         # 層に係る量
         u[0] = self.lambda_
