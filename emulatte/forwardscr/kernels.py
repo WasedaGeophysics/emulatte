@@ -170,8 +170,8 @@ def compute_kernel_circular(model, omega):
                     * np.exp(-model.u[model.tmt_layer - 1] \
                             * np.abs(model.rz - model.tz))
     kernel = []
-    besk1 = scipy.special.jn(1, model.lambda_ * model.r)
-    besk0 = scipy.special.jn(0, model.lambda_ * model.r)
+    besk1 = jn(1, model.lambda_ * model.r)
+    besk0 = jn(0, model.lambda_ * model.r)
 
     kernel_e_phai = kernel_te * model.lambda_ * besk1 \
                     / model.u[model.tmt_layer - 1]
