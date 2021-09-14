@@ -2,8 +2,8 @@
 .test/
 .ipynb_checkpoints
 *.DS_Store
-w1dem_old.py
-ex1dem/
+test/
+*.ipynb
 
 # Python Template
 # Byte-compiled / optimized / DLL files
