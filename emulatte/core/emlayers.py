@@ -106,7 +106,7 @@ class Subsurface1D:
             ignore_displacement_current = False, 
             time_diff=False, td_transform=None):
         """
-
+        
         """
         if not bool(td_transform):
             self.domain = 'Freq'
