@@ -38,17 +38,17 @@ class HankelTransform:
         model.lambda_ = y_base/model.r
         kernel = kernels.compute_kernel_vmd(model, omega)
         ans = {}
-        e_phi = np.dot(wt1.T[0], kernel[0]) / model.r
-        h_r = np.dot(wt1.T[0], kernel[1]) / model.r
-        h_z = np.dot(wt0.T[0], kernel[2]) / model.r
-        ans["e_x"] = -1 / (4 * np.pi) * model.ztilde[model.tlayer - 1] \
+        e_phi = np.dot(wt1, kernel[0]) / model.r
+        h_r = np.dot(wt1, kernel[1]) / model.r
+        h_z = np.dot(wt0, kernel[2]) / model.r
+        ans["e_x"] = -1 / (4 * np.pi) * model.ztilde[model.slayer - 1] \
                         * -model.sin_phi * e_phi
-        ans["e_y"] = -1 / (4 * np.pi) * model.ztilde[model.tlayer - 1] \
+        ans["e_y"] = -1 / (4 * np.pi) * model.ztilde[model.slayer - 1] \
                         *  model.cos_phi * e_phi
         ans["e_z"] = 0
         ans["h_x"] = 1 / (4 * np.pi) * model.cos_phi * h_r
         ans["h_y"] = 1 / (4 * np.pi) * model.sin_phi * h_r
-        ans["h_z"] = 1 / (4 * np.pi) * model.ztilde[model.tlayer - 1] \
+        ans["h_z"] = 1 / (4 * np.pi) * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] * h_z 
         return ans
 
@@ -62,72 +62,72 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hmd(model, omega)
         ans = {}
-        tm_er_1 = np.dot(wt0.T, kernel[0] * model.lambda_) / model.r
-        tm_er_2 = np.dot(wt1.T, kernel[0]) / model.r
-        te_er_1 = np.dot(wt0.T, kernel[1] * model.lambda_) / model.r
-        te_er_2 = np.dot(wt1.T, kernel[1]) / model.r
-        tm_ez = np.dot(wt1.T, kernel[2] * model.lambda_**2) / model.r
-        tm_hr_1 = np.dot(wt0.T, kernel[3] * model.lambda_) / model.r
-        tm_hr_2 = np.dot(wt1.T, kernel[3]) / model.r
-        te_hr_1 = np.dot(wt0.T, kernel[4] * model.lambda_) / model.r
-        te_hr_2 = np.dot(wt1.T, kernel[4]) / model.r
-        te_hz = np.dot(wt1.T, kernel[5] * model.lambda_**2) / model.r
-        amp_tm_ex_1 = -(model.ztilde * model.ytilde)[model.tlayer - 1] \
+        tm_er_1 = np.dot(wt0, kernel[0] * model.lambda_) / model.r
+        tm_er_2 = np.dot(wt1, kernel[0]) / model.r
+        te_er_1 = np.dot(wt0, kernel[1] * model.lambda_) / model.r
+        te_er_2 = np.dot(wt1, kernel[1]) / model.r
+        tm_ez = np.dot(wt1, kernel[2] * model.lambda_**2) / model.r
+        tm_hr_1 = np.dot(wt0, kernel[3] * model.lambda_) / model.r
+        tm_hr_2 = np.dot(wt1, kernel[3]) / model.r
+        te_hr_1 = np.dot(wt0, kernel[4] * model.lambda_) / model.r
+        te_hr_2 = np.dot(wt1, kernel[4]) / model.r
+        te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
+        amp_tm_ex_1 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ex_2 =  (model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ex_2 =  (model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 3)
-        amp_te_ex_1 = - model.ztilde[model.tlayer - 1] \
+        amp_te_ex_1 = - model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ex_2 =   model.ztilde[model.tlayer - 1] \
+        amp_te_ex_2 =   model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.r ** 3)
-        amp_tm_ey_1 = -(model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ey_1 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.ry - model.ty) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ey_2 =  (model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ey_2 =  (model.ztilde * model.ytilde)[model.slayer - 1] \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1]) \
                         * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 - 1 \
                             / model.r)
-        amp_te_ey_1 =  model.ztilde[model.tlayer - 1] \
+        amp_te_ey_1 =  model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ey_2 = -model.ztilde[model.tlayer - 1] \
+        amp_te_ey_2 = -model.ztilde[model.slayer - 1] \
                         / (4 * np.pi) * (2 * (model.rx - model.tx) ** 2 \
                             / model.r ** 3 - 1 / model.r)
-        amp_tm_ez = - model.ztilde[0,model.tlayer - 1] \
+        amp_tm_ez = - model.ztilde[0,model.slayer - 1] \
                         * (model.ry - model.ty) / (4 * np.pi * model.r)
-        amp_tm_hx_1 = model.k[model.tlayer - 1] ** 2  \
+        amp_tm_hx_1 = model.k[model.slayer - 1] ** 2  \
                         * (model.ry - model.ty) ** 2 / model.r ** 2 \
                         / (4 * np.pi)
-        amp_tm_hx_2 =  - model.k[model.tlayer - 1] ** 2 \
+        amp_tm_hx_2 =  - model.k[model.slayer - 1] ** 2 \
                         * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
         amp_te_hx_1 = (model.rx - model.tx) ** 2 / (4 * np.pi * model.r ** 2)\
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hx_2 = - model.ztilde[model.tlayer - 1] \
+        amp_te_hx_2 = - model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (2 * (model.rx - model.tx) ** 2 / model.r ** 2 - 1)\
                         / model.r / (4 * np.pi)
-        amp_tm_hy_1 = -model.k[model.tlayer - 1]** 2 / (4 * np.pi) \
+        amp_tm_hy_1 = -model.k[model.slayer - 1]** 2 / (4 * np.pi) \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / model.r ** 2
         amp_tm_hy_2 = - amp_tm_hy_1 / model.r * 2
-        amp_te_hy_1 = model.ztilde[model.tlayer - 1] \
+        amp_te_hy_1 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         / (4 * np.pi) * (model.rx - model.tx) \
                         * (model.ry - model.ty) / model.r ** 2
-        amp_te_hy_2 = -model.ztilde[model.tlayer - 1] \
+        amp_te_hy_2 = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         / (2 * np.pi) * (model.rx - model.tx) \
                         * (model.ry - model.ty) / model.r ** 3
-        amp_te_hz = model.ztilde[model.tlayer - 1] \
+        amp_te_hz = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.rx - model.tx) / (4 * np.pi * model.r)
 
@@ -153,75 +153,75 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hmd(model, omega)
         ans = {}
-        tm_er_1 = np.dot(wt0.T, kernel[0] * model.lambda_) / model.r
-        tm_er_2 = np.dot(wt1.T, kernel[0]) / model.r
-        te_er_1 = np.dot(wt0.T, kernel[1] * model.lambda_) / model.r
-        te_er_2 = np.dot(wt1.T, kernel[1]) / model.r
-        tm_ez = np.dot(wt1.T, kernel[2] * model.lambda_**2) / model.r
-        tm_hr_1 = np.dot(wt0.T, kernel[3] * model.lambda_) / model.r
-        tm_hr_2 = np.dot(wt1.T, kernel[3]) / model.r
-        te_hr_1 = np.dot(wt0.T, kernel[4] * model.lambda_) / model.r
-        te_hr_2 = np.dot(wt1.T, kernel[4]) / model.r
-        te_hz = np.dot(wt1.T, kernel[5]* model.lambda_**2) / model.r
+        tm_er_1 = np.dot(wt0, kernel[0] * model.lambda_) / model.r
+        tm_er_2 = np.dot(wt1, kernel[0]) / model.r
+        te_er_1 = np.dot(wt0, kernel[1] * model.lambda_) / model.r
+        te_er_2 = np.dot(wt1, kernel[1]) / model.r
+        tm_ez = np.dot(wt1, kernel[2] * model.lambda_**2) / model.r
+        tm_hr_1 = np.dot(wt0, kernel[3] * model.lambda_) / model.r
+        tm_hr_2 = np.dot(wt1, kernel[3]) / model.r
+        te_hr_1 = np.dot(wt0, kernel[4] * model.lambda_) / model.r
+        te_hr_2 = np.dot(wt1, kernel[4]) / model.r
+        te_hz = np.dot(wt1, kernel[5]* model.lambda_**2) / model.r
 
-        amp_tm_ex_1 = (model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ex_1 = (model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ex_2 = -(model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ex_2 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1]) \
                         * (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
                             - 1 / model.r)
-        amp_te_ex_1 = -model.ztilde[model.tlayer - 1] \
+        amp_te_ex_1 = -model.ztilde[model.slayer - 1] \
                         * (model.ry - model.ty) ** 2 \
                             / (4 * np.pi * model.r ** 2)
-        amp_te_ex_2 =  model.ztilde[model.tlayer - 1] / (4 * np.pi) \
+        amp_te_ex_2 =  model.ztilde[model.slayer - 1] / (4 * np.pi) \
                         * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
                             - 1 / model.r)
 
-        amp_tm_ey_1 = (model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ey_1 = (model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ey_2 = -(model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ey_2 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 3)
-        amp_te_ey_1 = model.ztilde[0,  model.tlayer - 1] \
+        amp_te_ey_1 = model.ztilde[0,  model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ey_2 = - model.ztilde[model.tlayer - 1] \
+        amp_te_ey_2 = - model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.r ** 3)
-        amp_tm_ez = -(model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_ez = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r)
 
-        amp_tm_hx_1 = (model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_hx_1 = (model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
         amp_tm_hx_2 = - amp_tm_hx_1 * 2 / model.r
-        amp_te_hx_1 = model.ztilde[model.tlayer - 1]  \
+        amp_te_hx_1 = model.ztilde[model.slayer - 1]  \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
         amp_te_hx_2 = - amp_te_hx_1* 2 / model.r
-        amp_tm_hy_1 = -(model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_hy_1 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_tm_hy_2 = (model.ztilde * model.ytilde)[model.tlayer - 1] \
+        amp_tm_hy_2 = (model.ztilde * model.ytilde)[model.slayer - 1] \
                         * (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_hy_1 = model.ztilde[model.tlayer - 1] \
+        amp_te_hy_1 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.ry - model.ty) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_hy_2 = - model.ztilde[0,  model.tlayer - 1] \
+        amp_te_hy_2 = - model.ztilde[0,  model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_hz =  model.ztilde[model.tlayer - 1] \
+        amp_te_hz =  model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.ry - model.ty) / (4 * np.pi * model.r)
 
@@ -247,9 +247,9 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_ved(model, omega)
         ans = {}
-        e_phai = np.dot(wt1.T, kernel[0] * model.lambda_ ** 2) / model.r
-        e_z = np.dot(wt0.T, kernel[1] * model.lambda_ ** 3) / model.r
-        h_r = np.dot(wt1.T, kernel[2] * model.lambda_ ** 2) / model.r
+        e_phai = np.dot(wt1, kernel[0] * model.lambda_ ** 2) / model.r
+        e_z = np.dot(wt0, kernel[1] * model.lambda_ ** 3) / model.r
+        h_r = np.dot(wt1, kernel[2] * model.lambda_ ** 2) / model.r
 
         ans["e_x"] = -1 / (4 * np.pi * model.ytilde[model.rlayer - 1]) \
                     * model.cos_phi * e_phai
@@ -272,16 +272,16 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hed(model, omega)
         ans = {}
-        tm_er_1 = np.dot(wt0.T, kernel[0] * model.lambda_) / model.r
-        tm_er_2 = np.dot(wt1.T, kernel[0]) / model.r
-        te_er_1 = np.dot(wt0.T, kernel[1] * model.lambda_) / model.r
-        te_er_2 = np.dot(wt1.T, kernel[1]) / model.r
-        tm_ez = np.dot(wt1.T, kernel[2] * model.lambda_ ** 2) / model.r
-        tm_hr_1 = np.dot(wt0.T, kernel[3] * model.lambda_) / model.r
-        tm_hr_2 = np.dot(wt1.T, kernel[3]) / model.r
-        te_hr_1 = np.dot(wt0.T, kernel[4] * model.lambda_) / model.r
-        te_hr_2 = np.dot(wt1.T, kernel[4]) / model.r
-        te_hz = np.dot(wt1.T, kernel[5] * model.lambda_**2) / model.r
+        tm_er_1 = np.dot(wt0, kernel[0] * model.lambda_) / model.r
+        tm_er_2 = np.dot(wt1, kernel[0]) / model.r
+        te_er_1 = np.dot(wt0, kernel[1] * model.lambda_) / model.r
+        te_er_2 = np.dot(wt1, kernel[1]) / model.r
+        tm_ez = np.dot(wt1, kernel[2] * model.lambda_ ** 2) / model.r
+        tm_hr_1 = np.dot(wt0, kernel[3] * model.lambda_) / model.r
+        tm_hr_2 = np.dot(wt1, kernel[3]) / model.r
+        te_hr_1 = np.dot(wt0, kernel[4] * model.lambda_) / model.r
+        te_hr_2 = np.dot(wt1, kernel[4]) / model.r
+        te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
 
         amp_tm_ex_g_1 = (model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
@@ -290,23 +290,23 @@ class HankelTransform:
                                 - 1 / model.r) \
                             / (4 * np.pi \
                                 * model.ytilde[model.rlayer - 1])
-        amp_te_ex_g_1 = model.ztilde[model.tlayer - 1] \
+        amp_te_ex_g_1 = model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ex_g_2 = - model.ztilde[model.tlayer - 1] \
+        amp_te_ex_g_2 = - model.ztilde[model.slayer - 1] \
                         * (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_ex_line = - model.ztilde[model.tlayer - 1] / (4 * np.pi)
+        amp_te_ex_line = - model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_tm_ey_g_1 = (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
         amp_tm_ey_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r**3 )
-        amp_te_ey_g_1 = + model.ztilde[model.tlayer - 1] \
+        amp_te_ey_g_1 = + model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ey_g_2 = - model.ztilde[model.tlayer - 1] \
+        amp_te_ey_g_2 = - model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.r ** 3)
         amp_tm_ez = (model.rx - model.tx) \
@@ -318,11 +318,11 @@ class HankelTransform:
                         / (2 * np.pi * model.r ** 3)
         amp_te_hx_g_1 = + (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hx_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.r ** 3) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_tm_hy_g_1 = -(model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
@@ -330,16 +330,16 @@ class HankelTransform:
                             - 1 / model.r) / (4 * np.pi)
         amp_te_hy_g_1 = - (model.rx - model.tx) ** 2 \
                         / (4 * np.pi * model.r ** 2) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hy_g_2 = (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
                         - 1 / model.r) / (4 * np.pi) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hy_line = model.ztilde[model.tlayer - 1] \
+        amp_te_hy_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         / (4 * np.pi)
-        amp_te_hz_line = model.ztilde[model.tlayer - 1] \
+        amp_te_hz_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.ry - model.ty) / (4 * np.pi * model.r)
 
@@ -367,16 +367,16 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hed(model, omega)
         ans = {}
-        tm_er_1 = np.dot(wt0.T, kernel[0] * model.lambda_) / model.r
-        tm_er_2 = np.dot(wt1.T, kernel[0]) / model.r
-        te_er_1 = np.dot(wt0.T, kernel[1] * model.lambda_) / model.r
-        te_er_2 = np.dot(wt1.T, kernel[1]) / model.r
-        tm_ez = np.dot(wt1.T, kernel[2] * model.lambda_**2) / model.r
-        tm_hr_1 = np.dot(wt0.T, kernel[3] * model.lambda_) / model.r
-        tm_hr_2 = np.dot(wt1.T, kernel[3]) / model.r
-        te_hr_1 = np.dot(wt0.T, kernel[4] * model.lambda_) / model.r
-        te_hr_2 = np.dot(wt1.T, kernel[4]) / model.r
-        te_hz = np.dot(wt1.T, kernel[5] * model.lambda_**2) / model.r
+        tm_er_1 = np.dot(wt0, kernel[0] * model.lambda_) / model.r
+        tm_er_2 = np.dot(wt1, kernel[0]) / model.r
+        te_er_1 = np.dot(wt0, kernel[1] * model.lambda_) / model.r
+        te_er_2 = np.dot(wt1, kernel[1]) / model.r
+        tm_ez = np.dot(wt1, kernel[2] * model.lambda_**2) / model.r
+        tm_hr_1 = np.dot(wt0, kernel[3] * model.lambda_) / model.r
+        tm_hr_2 = np.dot(wt1, kernel[3]) / model.r
+        te_hr_1 = np.dot(wt0, kernel[4] * model.lambda_) / model.r
+        te_hr_2 = np.dot(wt1, kernel[4]) / model.r
+        te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
 
         amp_tm_ex_g_1 = (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
@@ -384,10 +384,10 @@ class HankelTransform:
         amp_tm_ex_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 3)
-        amp_te_ex_g_1 = model.ztilde[model.tlayer - 1] \
+        amp_te_ex_g_1 = model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ex_g_2 = - model.ztilde[model.tlayer - 1] \
+        amp_te_ex_g_2 = - model.ztilde[model.slayer - 1] \
                         * (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.r ** 3)
         amp_tm_ey_g_1 = (model.ry - model.ty) ** 2 \
@@ -396,13 +396,13 @@ class HankelTransform:
         amp_tm_ey_g_2 = - (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
                             - 1 / model.r) \
                         / (4 * np.pi* model.ytilde[model.rlayer - 1])
-        amp_te_ey_g_1 =  model.ztilde[model.tlayer - 1] \
+        amp_te_ey_g_1 =  model.ztilde[model.slayer - 1] \
                         * (model.ry - model.ty) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_te_ey_g_2 = -model.ztilde[model.tlayer - 1] \
+        amp_te_ey_g_2 = -model.ztilde[model.slayer - 1] \
                         * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_ey_line = - model.ztilde[model.tlayer - 1] / (4 * np.pi)
+        amp_te_ey_line = - model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_tm_ez = (model.ry - model.ty) / (4 * np.pi \
                         * model.ytilde[model.rlayer - 1] * model.r)
         amp_tm_hx_g_1 = (model.ry - model.ty) ** 2 \
@@ -411,13 +411,13 @@ class HankelTransform:
                             - 1 / model.r) / (4 * np.pi)
         amp_te_hx_g_1 = + (model.ry - model.ty) ** 2 \
                         / (4 * np.pi * model.r ** 2) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hx_g_2 = - (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
                         - 1 / model.r) / (4 * np.pi) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hx_line = -model.ztilde[model.tlayer - 1] \
+        amp_te_hx_line = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
         amp_tm_hy_g_1 = - (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2)
@@ -425,13 +425,13 @@ class HankelTransform:
                         / (2 * np.pi * model.r ** 3)
         amp_te_hy_g_1 = - (model.rx - model.tx) * (model.ry - model.ty) \
                         / (4 * np.pi * model.r ** 2) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hy_g_2 = (model.rx - model.tx) * (model.ry - model.ty) \
                         / (2 * np.pi * model.r ** 3) \
-                        * model.ztilde[model.tlayer - 1] \
+                        * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hz_line = -model.ztilde[model.tlayer - 1] \
+        amp_te_hz_line = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.rx - model.tx) / (4 * np.pi * model.r)
 
@@ -456,24 +456,24 @@ class HankelTransform:
         """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
-        model.lambda_ = y_base / model.r
+        model.lambda_ = y_base / model.src.radius
         kernel = kernels.compute_kernel_circular(model, omega)
         ans = {}
-        e_phai = np.dot(wt1.T, kernel[0]) / model.src.radius
-        h_r = np.dot(wt1.T, kernel[1]) / model.src.radius
-        h_z = np.dot(wt1.T, kernel[2]) / model.src.radius
-        ans["e_x"] =  model.ztilde[model.tlayer - 1] * model.src.radius\
+        e_phai = np.dot(wt1, kernel[0]) / model.src.radius
+        h_r = np.dot(wt1, kernel[1]) / model.src.radius
+        h_z = np.dot(wt1, kernel[2]) / model.src.radius
+        ans["e_x"] =  model.ztilde[model.slayer - 1] * model.src.radius\
                         * model.sin_phi / 2 * e_phai
-        ans["e_y"] = -model.ztilde[model.tlayer - 1] * model.src.radius\
+        ans["e_y"] = -model.ztilde[model.slayer - 1] * model.src.radius\
                         * model.cos_phi / 2 * e_phai
         ans["e_z"] = 0
-        ans["h_x"] = -model.src.radius * model.ztilde[model.tlayer - 1]\
+        ans["h_x"] = -model.src.radius * model.ztilde[model.slayer - 1]\
                         / model.ztilde[model.rlayer - 1] \
                         * model.cos_phi / 2 * h_r
-        ans["h_y"] = -model.src.radius * model.ztilde[model.tlayer - 1]\
+        ans["h_y"] = -model.src.radius * model.ztilde[model.slayer - 1]\
                         / model.ztilde[model.rlayer - 1] \
                         * model.sin_phi / 2 * h_r
-        ans["h_z"] = model.src.radius * model.ztilde[model.tlayer - 1] \
+        ans["h_z"] = model.src.radius * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / 2 * h_z
         return ans
     
@@ -487,7 +487,7 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_coincident(model, omega)
         ans = {}
-        h_z_co = np.dot(wt1.T, kernel[0]) / model.src.radius
+        h_z_co = np.dot(wt1, kernel[0]) / model.src.radius
         ans["e_x"] = 0
         ans["e_y"] = 0
         ans["e_z"] = 0
@@ -508,26 +508,26 @@ class HankelTransform:
         model.lamda = y_base_wire / model.rn
         kernel = kernels.compute_kernel_hed(model, omega)
         ans = {}
-        tm_er_g_first = np.dot(wt1.T, kernel[0][:, 0]) / model.rn[0, 0]
-        tm_er_g_end = np.dot(wt1.T, kernel[0][:, model.src.num_dipole - 1]) \
+        tm_er_g_first = np.dot(wt1, kernel[0][:, 0]) / model.rn[0, 0]
+        tm_er_g_end = np.dot(wt1, kernel[0][:, model.src.num_dipole - 1]) \
                         / model.rn[0, model.src.num_dipole - 1]
-        te_er_g_first = np.dot(wt1.T, kernel[1][:, 0]) / model.rn[0, 0]
-        te_er_g_end = np.dot(wt1.T, kernel[1][:, model.src.num_dipole - 1]) \
+        te_er_g_first = np.dot(wt1, kernel[1][:, 0]) / model.rn[0, 0]
+        te_er_g_end = np.dot(wt1, kernel[1][:, model.src.num_dipole - 1]) \
                         / model.rn[0, model.src.num_dipole - 1]
-        tm_ez_1 = np.dot(wt0.T, kernel[2][:, 0] * model.lambda_[:, 0]) \
+        tm_ez_1 = np.dot(wt0, kernel[2][:, 0] * model.lambda_[:, 0]) \
                         / model.rn[0, 0]
-        tm_ez_2 = np.dot(wt0.T, kernel[2][:, model.src.num_dipole - 1] \
+        tm_ez_2 = np.dot(wt0, kernel[2][:, model.src.num_dipole - 1] \
                         * model.lambda_[:, model.src.num_dipole - 1]) \
                         / model.rn[0, model.src.num_dipole - 1]
-        tm_hr_g_first = np.dot(wt1.T, kernel[3][:, 0]) / model.rn[0, 0]
-        tm_hr_g_end = np.dot(wt1.T, kernel[3][:, model.src.num_dipole - 1]) \
+        tm_hr_g_first = np.dot(wt1, kernel[3][:, 0]) / model.rn[0, 0]
+        tm_hr_g_end = np.dot(wt1, kernel[3][:, model.src.num_dipole - 1]) \
                         / model.rn[0, model.src.num_dipole - 1]
-        te_hr_g_first = np.dot(wt1.T, kernel[4][:, 0]) / model.rn[0, 0]
-        te_hr_g_end = np.dot(wt1.T, kernel[4][:, model.src.num_dipole - 1]) \
+        te_hr_g_first = np.dot(wt1, kernel[4][:, 0]) / model.rn[0, 0]
+        te_hr_g_end = np.dot(wt1, kernel[4][:, model.src.num_dipole - 1]) \
                         / model.rn[0, model.src.num_dipole - 1]
-        te_hz_l = np.dot(wt1.T, kernel[5] * model.lambda_ ** 2) / model.rn
-        te_ex_l = np.dot(wt0.T, kernel[1] * model.lambda_) / model.rn
-        te_hy_l = np.dot(wt0.T, kernel[4] * model.lambda_) / model.rn
+        te_hz_l = np.dot(wt1, kernel[5] * model.lambda_ ** 2) / model.rn
+        te_ex_l = np.dot(wt0, kernel[1] * model.lambda_) / model.rn
+        te_hy_l = np.dot(wt0, kernel[4] * model.lambda_) / model.rn
 
         amp_tm_ex_1 = (model.xx[0] / model.rn[0,0]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
@@ -535,44 +535,44 @@ class HankelTransform:
                             / model.rn[0, model.src.num_dipole-1]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
         amp_te_ex_1 = (model.xx[0] / model.rn[0, 0]) \
-                        * model.ztilde[model.tlayer - 1] / (4 * np.pi)
+                        * model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_te_ex_2 = (-model.xx[model.src.num_dipole-1] \
                         / model.rn[0, model.src.num_dipole-1]) \
-                        * model.ztilde[model.tlayer - 1] / (4 * np.pi)
-        te_ex_line = -model.ztilde[model.tlayer - 1] / (4 * np.pi)
+                        * model.ztilde[model.slayer - 1] / (4 * np.pi)
+        te_ex_line = -model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_tm_ey_1 = (model.yy[0] / model.rn[0,0]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
         amp_tm_ey_2 = (-model.yy[model.src.num_dipole-1] \
                         / model.rn[0, model.src.num_dipole-1]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
         amp_te_ey_1 = (model.yy[0] / model.rn[0, 0]) \
-                        * model.ztilde[model.tlayer - 1] / (4 * np.pi)
+                        * model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_te_ey_2 =  (-model.yy[model.src.num_dipole-1] \
                         / model.rn[0, model.src.num_dipole-1]) \
-                        * model.ztilde[model.tlayer - 1] / (4 * np.pi)
+                        * model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_tm_ez_1 = 1 / (4 * np.pi * model.ytilde[model.rlayer - 1])
         amp_tm_ez_2 = -1 / (4 * np.pi * model.ytilde[model.rlayer - 1])
         amp_tm_hx_1 = 1 / (4 * np.pi) * model.yy[0] / model.rn[0,0]
         amp_tm_hx_2 = - 1 / (4 *np.pi) * model.yy[model.src.num_dipole-1] \
                         / model.rn[0,model.src.num_dipole-1]
-        amp_te_hx_1 = model.ztilde[model.tlayer - 1] \
+        amp_te_hx_1 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi) \
                         * model.yy[0] / model.rn[0,0]
-        amp_te_hx_2 = - model.ztilde[model.tlayer - 1] \
+        amp_te_hx_2 = - model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 *np.pi) \
                         * model.yy[model.src.num_dipole-1] \
                         / model.rn[0,model.src.num_dipole-1]
         amp_tm_hy_1 = -1 / (4 * np.pi) * model.xx[0] / model.rn[0,0]
         amp_tm_hy_2 = 1 / ( 4 *np.pi) * model.xx[model.src.num_dipole-1] \
                         / model.rn[0,model.src.num_dipole-1]
-        amp_te_hy_1 = -model.ztilde[model.tlayer - 1] \
+        amp_te_hy_1 = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi) \
                         * model.xx[0] / model.rn[0,0]
-        amp_te_hy_2 = model.ztilde[model.tlayer - 1] \
+        amp_te_hy_2 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi) \
                         * model.xx[model.src.num_dipole-1] \
                         / model.rn[0,model.src.num_dipole-1]
-        te_hy_line = model.ztilde[model.tlayer - 1] \
+        te_hy_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
 
         ans["e_x"] = (amp_tm_ex_1 * tm_er_g_first \
@@ -595,7 +595,7 @@ class HankelTransform:
                         + amp_te_hy_2 * te_hr_g_end \
                         + te_hy_line * model.ds \
                         * np.dot(te_hy_l, np.ones((model.src.num_dipole,1)))
-        ans["h_z"] = np.dot(model.ztilde[model.tlayer - 1] \
+        ans["h_z"] = np.dot(model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * model.yy / model.rn * model.ds / (4*np.pi) \
                         ,te_hz_l.T)
@@ -611,11 +611,11 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hed(model, omega)
         ans = {}
-        te_ex_l = np.dot(wt0.T, kernel[1] * model.lambda_) / model.rn
-        te_hy_l = np.dot(wt0.T, kernel[4] * model.lambda_) / model.rn
-        te_hz_l = np.dot(wt1.T, kernel[5] * model.lambda_ ** 2) / model.rn
-        te_ex_line = -model.ztilde[model.tlayer - 1] / (4 * np.pi)
-        te_hy_line = model.ztilde[model.tlayer - 1] \
+        te_ex_l = np.dot(wt0, kernel[1] * model.lambda_) / model.rn
+        te_hy_l = np.dot(wt0, kernel[4] * model.lambda_) / model.rn
+        te_hz_l = np.dot(wt1, kernel[5] * model.lambda_ ** 2) / model.rn
+        te_ex_line = -model.ztilde[model.slayer - 1] / (4 * np.pi)
+        te_hy_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
 
         ans["e_x"] =  te_ex_line * model.ds \
@@ -625,7 +625,7 @@ class HankelTransform:
         ans["h_x"] = 0
         ans["h_y"] = te_hy_line * model.ds \
                         * np.dot(te_hy_l, np.ones((model.src.num_dipole,1)))
-        ans["h_z"] = np.dot(model.ztilde[model.tlayer - 1] \
+        ans["h_z"] = np.dot(model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * model.yy / model.rn * model.ds / (4*np.pi) \
                         , te_hz_l.T)
@@ -641,14 +641,14 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hed(model, omega)
         ans = {}
-        te_er_1 = np.dot(wt0.T, kernel[1] * model.lambda_) / model.r
-        te_hr_1 = np.dot(wt0.T, kernel[4] * model.lambda_) / model.r
-        te_hz = np.dot(wt1.T, kernel[5] * model.lambda_**2) / model.r
+        te_er_1 = np.dot(wt0, kernel[1] * model.lambda_) / model.r
+        te_hr_1 = np.dot(wt0, kernel[4] * model.lambda_) / model.r
+        te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
 
-        amp_te_ex_line = - model.ztilde[model.tlayer - 1] / (4 * np.pi)
-        amp_te_hy_line = model.ztilde[model.tlayer - 1] \
+        amp_te_ex_line = - model.ztilde[model.slayer - 1] / (4 * np.pi)
+        amp_te_hy_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
-        amp_te_hz_line = model.ztilde[model.tlayer - 1] \
+        amp_te_hz_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.ry - model.ty) / (4 * np.pi * model.r)
 
@@ -670,14 +670,14 @@ class HankelTransform:
         model.lambda_ = y_base / model.r
         kernel = kernels.compute_kernel_hed(model, omega)
         ans = {}
-        te_er_1 = np.dot(wt0.T, kernel[1] * model.lambda_) / model.r
-        te_hr_1 = np.dot(wt0.T, kernel[4] * model.lambda_) / model.r
-        te_hz = np.dot(wt1.T, kernel[5] * model.lambda_ ** 2) / model.r
+        te_er_1 = np.dot(wt0, kernel[1] * model.lambda_) / model.r
+        te_hr_1 = np.dot(wt0, kernel[4] * model.lambda_) / model.r
+        te_hz = np.dot(wt1, kernel[5] * model.lambda_ ** 2) / model.r
 
-        amp_te_ey_line = - model.ztilde[model.tlayer - 1] / (4 * np.pi)
-        amp_te_hx_line = -model.ztilde[model.tlayer - 1] \
+        amp_te_ey_line = - model.ztilde[model.slayer - 1] / (4 * np.pi)
+        amp_te_hx_line = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
-        amp_te_hz_line = - model.ztilde[model.tlayer - 1] \
+        amp_te_hz_line = - model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * (model.rx - model.tx) / (4 * np.pi * model.r)
         ans["e_x"] = 0

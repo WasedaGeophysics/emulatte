@@ -62,9 +62,9 @@ class Subsurface1D:
 
 
     #== SET UP ===========================================#
-    def locate(self, emsrc, sc, rc):
+    def locate(self, emsrc, sc, rc, **kwargs):
         """
-        
+        Coordinates & Angles
         """
         self.src = emsrc
         sc = ndarray_converter(sc, 'sc')
@@ -78,7 +78,7 @@ class Subsurface1D:
         delta_z = 1e-8      #filterがanderson801の時は1e-4?
 
         if r == 0:
-            r -= 1e-8
+            r = 1e-8
         if sz in self.depth:
             sz = sz - delta_z
         if sz == rz:
@@ -89,13 +89,13 @@ class Subsurface1D:
         sin_phi = (ry - sy) / r
 
         # 送受信点が含まれる層の特定
-        tlayer = self.in_which_layer(sz)
+        slayer = self.in_which_layer(sz)
         rlayer = self.in_which_layer(rz)
 
         # return to self
         self.sx, self.sy ,self.sz = sx, sy, sz
         self.rx, self.ry ,self.rz = rx, ry, rz
-        self.tlayer = tlayer 
+        self.slayer = slayer 
         self.rlayer = rlayer
         self.r = r
         self.cos_phi = cos_phi
@@ -152,7 +152,9 @@ class Subsurface1D:
         # w1dem.pyでは何か変なことになってる
         if self.ignore_displacement_current:
             ytilde[:] = self.sigma[:]
+            ytilde[0] = 1e-13
             k[:] = (- 1.j * omega * self.mu[:] * self.sigma[:]) ** 0.5
+            k[0] = 0 # !!!
         else:
             ytilde[:] = self.sigma[:] + 1.j * omega * self.epsln[:]
             k[:] = (omega ** 2.0 * self.mu[:] * self.epsln[:] \
@@ -160,7 +162,7 @@ class Subsurface1D:
         
         # u = (kx^2 + ky^2 - km^2)^0.5
         for i in range(self.num_layer):
-            u[i] = (self.lambda_.T[0] ** 2 - k[i] ** 2) ** 0.5
+            u[i] = (self.lambda_ ** 2 - k[i] ** 2) ** 0.5
 
         # tanh
         for i in range(1, self.num_layer - 1):
@@ -183,7 +185,7 @@ class Subsurface1D:
         R_tm = np.ones((self.num_layer, self.filter_length), dtype=complex)
 
         #送受信層index+1　for コード短縮
-        ti = self.tlayer
+        si = self.slayer
         ri = self.rlayer
 
         ### DOWN ADMITTANCE & IMPEDANCE ###
@@ -196,7 +198,7 @@ class Subsurface1D:
         r_te[-1] = 0
         r_tm[-1] = 0
 
-        for ii in range(self.num_layer - 1, ti, -1):
+        for ii in range(self.num_layer - 1, si, -1):
             numerator_Y = Ytilde[ii] + Y[ii - 1] * tanhuh[ii - 1]
             denominator_Y = Y[ii - 1] + Ytilde[ii] * tanhuh[ii - 1]
             Ytilde[ii - 1] = Y[ii - 1] * numerator_Y / denominator_Y
@@ -208,9 +210,9 @@ class Subsurface1D:
             r_te[ii - 1] = (Y[ii - 1] - Ytilde[ii]) / (Y[ii - 1] + Ytilde[ii])
             r_tm[ii - 1] = (Z[ii - 1] - Ztilde[ii]) / (Z[ii - 1] + Ztilde[ii])
 
-        if ti != self.num_layer:
-            r_te[ti - 1] = (Y[ti - 1] - Ytilde[ti]) / (Y[ti - 1] + Ytilde[ti])
-            r_tm[ti - 1] = (Z[ti - 1] - Ztilde[ti]) / (Z[ti - 1] + Ztilde[ti])
+        if si != self.num_layer:
+            r_te[si - 1] = (Y[si - 1] - Ytilde[si]) / (Y[si - 1] + Ytilde[si])
+            r_tm[si - 1] = (Z[si - 1] - Ztilde[si]) / (Z[si - 1] + Ztilde[si])
 
         ### UP ADMITTANCE & IMPEDANCE ###
         Yhat = np.ones((self.num_layer, self.filter_length), dtype=complex)
@@ -222,11 +224,11 @@ class Subsurface1D:
         R_te[0] = 0
         R_tm[0] = 0
 
-        for ii in range(2, ti):
+        for ii in range(2, si):
             numerator_Y = Yhat[ii - 2] + Y[ii - 1] * tanhuh[ii - 1]
             denominator_Y = Y[ii - 1] + Yhat[ii - 2] * tanhuh[ii - 1]
             Yhat[ii - 1] = Y[ii - 1] * numerator_Y / denominator_Y  
-            # (2)Yhat{2,3,\,ti-2,ti-1}
+            # (2)Yhat{2,3,\,si-2,si-1}
 
             numerator_Z = Zhat[ii - 2] + Z[ii - 1] * tanhuh[ii - 1]
             denominator_Z = Z[ii - 1] + Zhat[ii - 2] * tanhuh[ii - 1]
@@ -234,88 +236,88 @@ class Subsurface1D:
 
             R_te[ii - 1] = (Y[ii - 1] - Yhat[ii - 2]) / (Y[ii - 1] + Yhat[ii - 2])
             R_tm[ii - 1] = (Z[ii - 1] - Zhat[ii - 2]) / (Z[ii - 1] + Zhat[ii - 2])
-        if ti != 1 :
-            R_te[ti - 1] = (Y[ti - 1] - Yhat[ti - 2]) / (Y[ti - 1] + Yhat[ti - 2])
-            R_tm[ti - 1] = (Z[ti - 1] - Zhat[ti - 2]) / (Z[ti - 1] + Zhat[ti - 2])
+        if si != 1 :
+            R_te[si - 1] = (Y[si - 1] - Yhat[si - 2]) / (Y[si - 1] + Yhat[si - 2])
+            R_tm[si - 1] = (Z[si - 1] - Zhat[si - 2]) / (Z[si - 1] + Zhat[si - 2])
 
         U_te = np.ones((self.num_layer, self.filter_length), dtype=complex)
         U_tm = np.ones((self.num_layer, self.filter_length), dtype=complex)
         D_te = np.ones((self.num_layer, self.filter_length), dtype=complex)
         D_tm = np.ones((self.num_layer, self.filter_length), dtype=complex)
 
-        # In the layer containing the source (tlayer)
-        if ti == 1:
-            U_te[ti - 1] = 0
-            U_tm[ti - 1] = 0
-            D_te[ti - 1] = self.src.kernel_te_down_sign * r_te[ti - 1] \
-                            * np.exp(-u[ti - 1] * (self.depth[ti - 1] - self.sz))
-            D_tm[ti - 1] = self.src.kernel_tm_down_sign * r_tm[ti - 1] \
-                            * np.exp(-u[ti - 1] * (self.depth[ti - 1] - self.sz))
-        elif ti == self.num_layer:
-            U_te[ti - 1] = self.src.kernel_te_up_sign * R_te[ti - 1] \
-                            * np.exp(u[ti - 1] * (self.depth[ti - 2] - self.sz))
-            U_tm[ti - 1] = self.src.kernel_tm_up_sign * R_tm[ti - 1] \
-                            * np.exp(u[ti - 1] * (self.depth[ti - 2] - self.sz))
-            D_te[ti - 1] = 0
-            D_tm[ti - 1] = 0
+        # In the layer containing the source (slayer)
+        if si == 1:
+            U_te[si - 1] = 0
+            U_tm[si - 1] = 0
+            D_te[si - 1] = self.src.kernel_te_down_sign * r_te[si - 1] \
+                            * np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
+            D_tm[si - 1] = self.src.kernel_tm_down_sign * r_tm[si - 1] \
+                            * np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
+        elif si == self.num_layer:
+            U_te[si - 1] = self.src.kernel_te_up_sign * R_te[si - 1] \
+                            * np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
+            U_tm[si - 1] = self.src.kernel_tm_up_sign * R_tm[si - 1] \
+                            * np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
+            D_te[si - 1] = 0
+            D_tm[si - 1] = 0
         else:
-            exp_term1 = np.exp(-2 * u[ti - 1]
-                                * (self.depth[ti - 1] - self.depth[ti - 2]))
-            exp_term2u = np.exp( u[ti - 1] * (self.depth[ti - 2] - 2 * self.depth[ti - 1] + self.sz))
-            exp_term2d = np.exp(-u[ti - 1] * (self.depth[ti - 1] - 2 * self.depth[ti - 2] + self.sz))
-            exp_term3u = np.exp( u[ti - 1] * (self.depth[ti - 2] - self.sz))
-            exp_term3d = np.exp(-u[ti - 1] * (self.depth[ti - 1] - self.sz))
+            exp_term1 = np.exp(-2 * u[si - 1]
+                                * (self.depth[si - 1] - self.depth[si - 2]))
+            exp_term2u = np.exp( u[si - 1] * (self.depth[si - 2] - 2 * self.depth[si - 1] + self.sz))
+            exp_term2d = np.exp(-u[si - 1] * (self.depth[si - 1] - 2 * self.depth[si - 2] + self.sz))
+            exp_term3u = np.exp( u[si - 1] * (self.depth[si - 2] - self.sz))
+            exp_term3d = np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
 
-            U_te[ti - 1] = \
-                1 / R_te[ti - 1] \
-                * (1 - R_te[ti - 1] * r_te[ti - 1] * exp_term1) \
-                * (self.src.kernel_te_down_sign * r_te[ti - 1] * exp_term2u \
+            U_te[si - 1] = \
+                1 / (1 - R_te[si - 1] * r_te[si - 1] * exp_term1) \
+                * R_te[si - 1] \
+                * (self.src.kernel_te_down_sign * r_te[si - 1] * exp_term2u \
                     + self.src.kernel_te_up_sign * exp_term3u)
 
-            U_tm[ti - 1] = \
-                1 / R_tm[ti - 1] \
-                * (1 - R_tm[ti - 1] * r_tm[ti - 1] * exp_term1) \
-                * (self.src.kernel_tm_down_sign  * r_tm[ti - 1] * exp_term2u \
+            U_tm[si - 1] = \
+                1 / (1 - R_tm[si - 1] * r_tm[si - 1] * exp_term1) \
+                * R_tm[si - 1] \
+                * (self.src.kernel_tm_down_sign  * r_tm[si - 1] * exp_term2u \
                     + self.src.kernel_tm_up_sign * exp_term3u)
 
-            D_te[ti - 1] = \
-                1 / r_te[ti - 1] \
-                * (1 - R_te[ti - 1] * r_te[ti - 1] * exp_term1) \
-                * (self.src.kernel_te_up_sign * R_te[ti - 1] * exp_term2d \
+            D_te[si - 1] = \
+                1 / (1 - R_te[si - 1] * r_te[si - 1] * exp_term1) \
+                * r_te[si - 1] \
+                * (self.src.kernel_te_up_sign * R_te[si - 1] * exp_term2d \
                     + self.src.kernel_te_down_sign * exp_term3d)
 
-            D_tm[ti - 1] = \
-                1 / r_tm[ti - 1] \
-                * (1 - R_tm[ti - 1] * r_tm[ti - 1] * exp_term1) \
-                * (self.src.kernel_tm_up_sign * R_tm[ti - 1] * exp_term2d \
+            D_tm[si - 1] = \
+                1 / (1 - R_tm[si - 1] * r_tm[si - 1] * exp_term1) \
+                * r_tm[si - 1] \
+                * (self.src.kernel_tm_up_sign * R_tm[si - 1] * exp_term2d \
                     + self.src.kernel_tm_down_sign * exp_term3d)
 
-        # for the layers above the tlayer
-        if ri < ti:
-            if ti == self.num_layer:
-                exp_term = np.exp(-u[ti - 1] * (self.sz - self.depth[ti - 2]))
+        # for the layers above the slayer
+        if ri < si:
+            if si == self.num_layer:
+                exp_term = np.exp(-u[si - 1] * (self.sz - self.depth[si - 2]))
 
-                D_te[ti - 2] = \
-                    (Y[ti - 2] * (1 + R_te[ti - 1]) + Y[ti - 1] * (1 - R_te[ti - 1])) \
-                    / (2 * Y[ti - 2]) * self.src.kernel_te_up_sign * exp_term
+                D_te[si - 2] = \
+                    (Y[si - 2] * (1 + R_te[si - 1]) + Y[si - 1] * (1 - R_te[si - 1])) \
+                    / (2 * Y[si - 2]) * self.src.kernel_te_up_sign * exp_term
 
-                D_tm[ti - 2] = \
-                    (Z[ti - 2] * (1 + R_tm[ti - 1]) + Z[ti - 1] * (1 - R_tm[ti - 1])) \
-                    / (2 * Z[ti - 2]) * self.src.kernel_tm_up_sign * exp_term
+                D_tm[si - 2] = \
+                    (Z[si - 2] * (1 + R_tm[si - 1]) + Z[si - 1] * (1 - R_tm[si - 1])) \
+                    / (2 * Z[si - 2]) * self.src.kernel_tm_up_sign * exp_term
 
-            elif ti != 1 and ti != self.num_layer:
-                exp_term = np.exp(-u[ti - 1] * (self.sz - self.depth[ti - 2]))
-                exp_termii = np.exp(-u[ti - 1] * (self.depth[ti - 1] - self.depth[ti - 2]))
+            elif si != 1 and si != self.num_layer:
+                exp_term = np.exp(-u[si - 1] * (self.sz - self.depth[si - 2]))
+                exp_termii = np.exp(-u[si - 1] * (self.depth[si - 1] - self.depth[si - 2]))
                 
-                D_te[ti - 2] = \
-                    (Y[ti - 2] * (1 + R_te[ti - 1]) + Y[ti - 1] * (1 - R_te[ti - 1])) \
-                    / (2 * Y[ti - 2]) * (D_te[ti - 1] * exp_termii + self.src.kernel_te_up_sign * exp_term)
+                D_te[si - 2] = \
+                    (Y[si - 2] * (1 + R_te[si - 1]) + Y[si - 1] * (1 - R_te[si - 1])) \
+                    / (2 * Y[si - 2]) * (D_te[si - 1] * exp_termii + self.src.kernel_te_up_sign * exp_term)
 
-                D_tm[ti - 2] = \
-                    (Z[ti - 2] * (1 + R_tm[ti - 1]) + Z[ti - 1] * (1 - R_tm[ti - 1])) \
-                    / (2 * Z[ti - 2]) * (D_tm[ti - 1]  * exp_termii + self.src.kernel_tm_up_sign * exp_term)
+                D_tm[si - 2] = \
+                    (Z[si - 2] * (1 + R_tm[si - 1]) + Z[si - 1] * (1 - R_tm[si - 1])) \
+                    / (2 * Z[si - 2]) * (D_tm[si - 1]  * exp_termii + self.src.kernel_tm_up_sign * exp_term)
 
-            for jj in range(ti - 2, 0, -1):
+            for jj in range(si - 2, 0, -1):
                 exp_termjj = np.exp(-u[jj] \
                                     * (self.depth[jj] - self.depth[jj - 1]))
                 D_te[jj - 1] = \
@@ -325,43 +327,43 @@ class Subsurface1D:
                     (Z[jj - 1] * (1 + R_tm[jj]) + Z[jj] * (1 - R_tm[jj])) \
                     / (2 * Z[jj - 1]) * D_tm[jj] * exp_termjj
 
-            for jj in range(ti - 1, 1, -1):
+            for jj in range(si - 1, 1, -1):
                 exp_termjj = np.exp(u[jj - 1] * (self.depth[jj - 2] - self.depth[jj - 1]))
                 U_te[jj - 1] = D_te[jj - 1] * exp_termjj * R_te[jj - 1]
                 U_tm[jj - 1] = D_tm[jj - 1] * exp_termjj * R_tm[jj - 1]
             U_te[0] = 0
             U_tm[0] = 0
 
-        # for the layers below the tlayer
-        if ri > ti:
-            if ti == 1:
-                exp_term = np.exp(-u[ti - 1] * (self.depth[ti - 1] - self.sz))
-                U_te[ti] = (Y[ti] * (1 + r_te[ti - 1]) \
-                                + Y[ti - 1] * (1 - r_te[ti - 1])) \
-                            / (2 * Y[ti]) \
+        # for the layers below the slayer
+        if ri > si:
+            if si == 1:
+                exp_term = np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
+                U_te[si] = (Y[si] * (1 + r_te[si - 1]) \
+                                + Y[si - 1] * (1 - r_te[si - 1])) \
+                            / (2 * Y[si]) \
                             * self.src.kernel_te_down_sign * exp_term
-                U_tm[ti] = (Z[ti] * (1 + r_tm[ti - 1]) \
-                                + Z[ti - 1] * (1 - r_tm[ti - 1])) \
-                            / (2 * Z[ti]) \
+                U_tm[si] = (Z[si] * (1 + r_tm[si - 1]) \
+                                + Z[si - 1] * (1 - r_tm[si - 1])) \
+                            / (2 * Z[si]) \
                             * self.src.kernel_tm_down_sign * exp_term
 
-            elif ti != 1 and ti != self.num_layer:
-                exp_termi = np.exp(-u[ti - 1] \
-                                * (self.depth[ti - 1] - self.depth[ti - 2]))
-                exp_termii = np.exp(-u[ti - 1] 
-                                * (self.depth[ti - 1] - self.sz))
-                U_te[ti] = (Y[ti] * (1 + r_te[ti - 1]) \
-                                    + Y[ti - 1] * (1 - r_te[ti - 1])) \
-                                / (2 * Y[ti]) \
-                                * (U_te[ti - 1] * exp_termi \
+            elif si != 1 and si != self.num_layer:
+                exp_termi = np.exp(-u[si - 1] \
+                                * (self.depth[si - 1] - self.depth[si - 2]))
+                exp_termii = np.exp(-u[si - 1] 
+                                * (self.depth[si - 1] - self.sz))
+                U_te[si] = (Y[si] * (1 + r_te[si - 1]) \
+                                    + Y[si - 1] * (1 - r_te[si - 1])) \
+                                / (2 * Y[si]) \
+                                * (U_te[si - 1] * exp_termi \
                                     + self.src.kernel_te_down_sign * exp_termii)
-                U_tm[ti] = (Z[ti] * (1 + r_tm[ti - 1]) + Z[ti - 1] \
-                                    * (1 - r_tm[ti - 1])) \
-                                / (2 * Z[ti]) \
-                                * (U_tm[ti - 1] * exp_termi \
+                U_tm[si] = (Z[si] * (1 + r_tm[si - 1]) + Z[si - 1] \
+                                    * (1 - r_tm[si - 1])) \
+                                / (2 * Z[si]) \
+                                * (U_tm[si - 1] * exp_termi \
                                     + self.src.kernel_tm_down_sign * exp_termii)
 
-            for jj in range(ti + 2, self.num_layer + 1):
+            for jj in range(si + 2, self.num_layer + 1):
                 exp_term = np.exp(-u[jj - 2] \
                                 * (self.depth[jj - 2] - self.depth[jj - 3]))
                 U_te[jj - 1] = (Y[jj - 1] * (1 + r_te[jj - 2]) \
@@ -371,7 +373,7 @@ class Subsurface1D:
                                     + Z[jj - 2] * (1 - r_tm[jj - 2])) \
                                 / (2 * Z[jj - 1]) * U_tm[jj - 2] * exp_term
                                 
-            for jj in range(ti + 1, self.num_layer):
+            for jj in range(si + 1, self.num_layer):
                 D_te[jj - 1] = U_te[jj - 1] * np.exp(-u[jj - 1] \
                                 * (self.depth[jj - 1] - self.depth[jj - 2])) \
                                 * r_te[jj - 1]
@@ -391,6 +393,17 @@ class Subsurface1D:
         else:
             e_up = np.exp(-u[ri - 1] * (self.rz - self.depth[ri - 2]))
             e_down = np.exp(u[ri - 1] * (self.rz - self.depth[ri - 1]))
+
+        self.r_te = r_te
+        self.r_tm = r_tm
+        self.R_te = R_te
+        self.R_tm = R_tm
+        self.U_te = U_te
+        self.U_tm = U_tm
+        self.D_te = D_te
+        self.D_tm = D_tm
+        self.e_up = e_up
+        self.e_down = e_down
         return U_te, U_tm, D_te, D_tm, e_up, e_down
 
     def in_which_layer(self, z):
@@ -399,7 +412,7 @@ class Subsurface1D:
         """
         layer_id = 1
         for i in range(self.num_layer-1, 0, -1):
-            if z >= self.depth[i-1]:
+            if z > self.depth[i-1]:
                 layer_id = i + 1
                 break
             else:

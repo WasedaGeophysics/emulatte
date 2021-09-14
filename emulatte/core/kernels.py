@@ -14,23 +14,24 @@ def compute_kernel_vmd(model, omega):
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rlayer - 1] * e_up \
                     + D_te[model.rlayer - 1] * e_down \
-                    + kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    + kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                         * np.abs(model.rz - model.sz))
     kernel_te_hr = U_te[model.rlayer - 1] * e_up \
                     - D_te[model.rlayer - 1] * e_down \
-                    +  kroneckers_delta(model.rlayer, model.tlayer) \
+                    +  kroneckers_delta(model.rlayer, model.slayer) \
                     * (model.rz - model.sz) / np.abs(model.rz - model.sz) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * np.exp(-model.u[model.slayer - 1] \
                         * np.abs(model.rz - model.sz))
-    kernel_e_phi = kernel_te * model.lambda_.T[0] ** 2 \
-                    / model.u[model.tlayer - 1]
-    kernel_h_r = kernel_te_hr * model.lambda_.T[0] ** 2 \
+    kernel_e_phi = kernel_te * model.lambda_ ** 2 \
+                    / model.u[model.slayer - 1]
+    kernel_h_r = kernel_te_hr * model.lambda_ ** 2 \
                     * model.u[model.rlayer - 1] \
-                    / model.u[model.tlayer - 1]
-    kernel_h_z = kernel_e_phi * model.lambda_.T[0]
+                    / model.u[model.slayer - 1]
+    kernel_h_z = kernel_e_phi * model.lambda_
     kernel = [kernel_e_phi, kernel_h_r, kernel_h_z]
     kernel = np.array(kernel)
+    model.kernel = kernel
     return kernel
 
 def compute_kernel_hmd(model, omega):
@@ -41,44 +42,43 @@ def compute_kernel_hmd(model, omega):
     kernel_tm_er = (-U_tm[model.rlayer - 1] * e_up \
                         + D_tm[model.rlayer - 1] * e_down \
                         - np.sign(model.rz - model.sz) \
-                        * kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        * kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                                 * np.abs(model.rz -model.sz))) \
                     * model.u[model.rlayer - 1] \
-                    / model.u[model.tlayer - 1]
+                    / model.u[model.slayer - 1]
     kernel_te_er = U_te[model.rlayer - 1] * e_up \
                     + D_te[model.rlayer - 1] * e_down \
                     + np.sign(model.rz - model.sz) \
-                    * kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
     kernel_tm_ez = (U_tm[model.rlayer - 1] * e_up \
                         + D_tm[model.rlayer - 1] * e_down \
-                        + kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        + kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                                 * np.abs(model.rz -model.sz))) \
-                    / model.u[model.tlayer - 1]
+                    / model.u[model.slayer - 1]
     kernel_tm_hr = (U_tm[model.rlayer - 1] * e_up \
                         + D_tm[model.rlayer - 1] * e_down \
-                        + kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        + kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                                 * np.abs(model.rz -model.sz))) \
-                    / model.u[model.tlayer - 1]
+                    / model.u[model.slayer - 1]
     kernel_te_hr = (-U_te[model.rlayer - 1] * e_up \
                         + D_te[model.rlayer - 1] * e_down \
-                        - kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        - kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                                 * np.abs(model.rz - model.sz))) \
                     * model.u[model.rlayer - 1]
     kernel_te_hz = U_te[model.rlayer - 1] * e_up \
                     + D_te[model.rlayer - 1] * e_down \
                     + np.sign(model.rz - model.sz) \
-                    * kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
-    kernel = []
-    kernel.extend((kernel_tm_er , kernel_te_er, kernel_tm_ez,
-                   kernel_tm_hr, kernel_te_hr, kernel_te_hz))
+    kernel = [kernel_tm_er , kernel_te_er, kernel_tm_ez,
+                   kernel_tm_hr, kernel_te_hr, kernel_te_hz]
     kernel = np.array(kernel)
     return kernel
 
@@ -89,22 +89,20 @@ def compute_kernel_ved(model, omega):
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_tm = U_tm[model.rlayer - 1] * e_up \
                     + D_tm[model.rlayer - 1] * e_down \
-                    + kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    + kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
     kernel_tm_er = -U_tm[model.rlayer - 1] * e_up \
                     + D_tm[model.rlayer - 1] * e_down \
                     - (model.rz - model.sz) / np.abs(model.rz - model.sz) \
-                    * kroneckers_delta(model.rlayer, model.tlayer)  \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * kroneckers_delta(model.rlayer, model.slayer)  \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
-    kernel_e_phai = kernel_tm_er * model.u[model.rlayer - 1] \
-                    / model.u[model.tlayer - 1]
-    kernel_e_z = kernel_tm / model.u[model.tlayer - 1]
-    kernel_h_r = kernel_tm / model.u[model.tlayer - 1]
-    kernel = []
-    kernel.extend((kernel_e_phai, kernel_e_z ,kernel_h_r))
-    kernel = np.array(kernel)
+    kernel_e_phi = kernel_tm_er * model.u[model.rlayer - 1] \
+                    / model.u[model.slayer - 1]
+    kernel_e_z = kernel_tm / model.u[model.slayer - 1]
+    kernel_h_r = kernel_tm / model.u[model.slayer - 1]
+    kernel = np.array([kernel_e_phi, kernel_e_z ,kernel_h_r])
     return kernel
 
 def compute_kernel_hed(model, omega):
@@ -114,42 +112,40 @@ def compute_kernel_hed(model, omega):
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_tm_er = (-U_tm[model.rlayer - 1] * e_up \
                         + D_tm[model.rlayer - 1] * e_down \
-                        - kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        - kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                                 * np.abs(model.rz - model.sz))) \
                     * model.u[model.rlayer - 1]
     kernel_te_er = (U_te[model.rlayer - 1] * e_up \
                         + D_te[model.rlayer - 1] * e_down \
-                        + kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        + kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))) \
-                    / model.u[model.tlayer - 1]
+                    / model.u[model.slayer - 1]
     kernel_tm_ez = U_tm[model.rlayer - 1] * e_up \
                     + D_tm[model.rlayer - 1] * e_down \
                     + (1-kroneckers_delta(model.rz - 1e-2, model.sz)) \
                     * np.sign(model.rz - model.sz) \
-                    * kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
     kernel_tm_hr = U_tm[model.rlayer - 1] * e_up \
                     + D_tm[model.rlayer - 1] * e_down \
                     + np.sign(model.rz - model.sz) \
-                    * kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
     kernel_te_hr = (-U_te[model.rlayer - 1] * e_up \
                         + D_te[model.rlayer - 1] * e_down \
                         - np.sign(model.rz - model.sz) \
-                        * kroneckers_delta(model.rlayer, model.tlayer) \
-                        * np.exp(-model.u[model.tlayer - 1] \
+                        * kroneckers_delta(model.rlayer, model.slayer) \
+                        * np.exp(-model.u[model.slayer - 1] \
                                 * np.abs(model.rz - model.sz))) \
                     * model.u[model.rlayer - 1] \
-                    / model.u[model.tlayer - 1]
+                    / model.u[model.slayer - 1]
     kernel_te_hz = kernel_te_er
-    kernel = []
-    kernel.extend((kernel_tm_er , kernel_te_er, kernel_tm_ez,
-                    kernel_tm_hr, kernel_te_hr, kernel_te_hz))
-    kernel = np.array(kernel)
+    kernel = np.array([kernel_tm_er , kernel_te_er, kernel_tm_ez,
+                    kernel_tm_hr, kernel_te_hr, kernel_te_hz])
     return kernel
 
 def compute_kernel_circular(model, omega):
@@ -159,28 +155,29 @@ def compute_kernel_circular(model, omega):
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rlayer - 1] * e_up \
                     + D_te[model.rlayer - 1] * e_down \
-                    + kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    + kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
     kernel_te_hr = -U_te[model.rlayer - 1] * e_up \
                     + D_te[model.rlayer - 1] * e_down \
-                    - kroneckers_delta(model.rlayer, model.tlayer) \
+                    - kroneckers_delta(model.rlayer, model.slayer) \
                     * (model.rz - model.sz) / np.abs(model.rz - model.sz) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
-    kernel = []
     besk1 = jn(1, model.lambda_ * model.r)
     besk0 = jn(0, model.lambda_ * model.r)
 
-    kernel_e_phai = kernel_te * model.lambda_ * besk1 \
-                    / model.u[model.tlayer - 1]
+    kernel_e_phi = kernel_te * model.lambda_ * besk1 \
+                    / model.u[model.slayer - 1]
     kernel_h_r = kernel_te_hr * model.lambda_ * besk1 \
                     * model.u[model.rlayer - 1] \
-                    / model.u[model.tlayer - 1]
+                    / model.u[model.slayer - 1]
     kernel_h_z = kernel_te * model.lambda_ ** 2 * besk0 \
-                    / model.u[model.tlayer - 1]
-    kernel.extend((kernel_e_phai, kernel_h_r, kernel_h_z))
+                    / model.u[model.slayer - 1]
+    kernel = [kernel_e_phi, kernel_h_r, kernel_h_z]
     kernel = np.array(kernel)
+    model.kernel = [kernel, kernel_te, kernel_te_hr]
+    model.kernel_te = kernel_te
     return kernel
 
 def compute_kernel_coincident(model, omega):
@@ -190,13 +187,11 @@ def compute_kernel_coincident(model, omega):
     U_te, U_tm, D_te, D_tm, e_up, e_down = model.compute_coefficients(omega)
     kernel_te = U_te[model.rlayer - 1] * e_up \
                     + D_te[model.rlayer - 1] * e_down \
-                    - kroneckers_delta(model.rlayer, model.tlayer) \
-                    * np.exp(-model.u[model.tlayer - 1] \
+                    - kroneckers_delta(model.rlayer, model.slayer) \
+                    * np.exp(-model.u[model.slayer - 1] \
                             * np.abs(model.rz - model.sz))
-    kernel = []
     besk1rad = jn(1, model.lambda_ * model.src.radius)
     kernel_h_z = kernel_te * model.lambda_ * besk1rad \
-                    / model.u[model.tlayer - 1]
-    kernel.append(kernel_h_z)
-    kernel = np.array(kernel)
+                    / model.u[model.slayer - 1]
+    kernel = np.array([kernel_h_z])
     return kernel

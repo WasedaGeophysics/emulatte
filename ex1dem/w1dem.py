@@ -474,11 +474,23 @@ class BaseEm(metaclass=ABCMeta):
             e_up = np.exp(-u[self.rlayer - 1] * (self.z - self.h[0, self.rlayer - 2]))
             e_down = np.exp(u[self.rlayer - 1] * (self.z - self.h[0, self.rlayer - 1]))
 
+        self.r_te = r_te
+        self.r_tm = r_tm
+        self.R_te = R_te
+        self.R_tm = R_tm
+        self.U_te = U_te
+        self.U_tm = U_tm
+        self.D_te = D_te
+        self.D_tm = D_tm
+        self.e_up = e_up
+        self.e_down = e_down
+
         def krondel(nn, mm):
             if nn == mm:
                 return 1
             else:
                 return 0
+        
 
         # kenel function for 1D electromagnetic
         if transmitter == "vmd":
@@ -493,11 +505,6 @@ class BaseEm(metaclass=ABCMeta):
             kernel_h_r = kernel_te_hr * self.lamda ** 2 * u[self.rlayer - 1] / u[self.tlayer - 1]
             kernel_h_z = kernel_e_phai * self.lamda
             kernel.extend((kernel_e_phai,kernel_h_r,kernel_h_z))
-            self.kernel_te = kernel_te
-            self.e_up = e_up
-            self.e_down = e_down
-            self.U_te = U_te
-            self.D_te = D_te
 
         elif transmitter == "circular_loop":
             kernel_te = U_te[self.rlayer - 1] * e_up + D_te[self.rlayer - 1] * e_down \
@@ -514,6 +521,9 @@ class BaseEm(metaclass=ABCMeta):
             kernel_h_r = kernel_te_hr * self.lamda * besk1 * u[self.rlayer - 1] / u[self.tlayer - 1]
             kernel_h_z = kernel_te * self.lamda ** 2 * besk0 / u[self.tlayer - 1]
             kernel.extend((kernel_e_phai, kernel_h_r, kernel_h_z))
+
+            self.kernel_te = kernel_te
+
         elif transmitter == "coincident_loop":
             kernel_te = U_te[self.rlayer - 1] * e_up + D_te[self.rlayer - 1] * e_down \
                         - krondel(self.rlayer, self.tlayer) * np.exp(-u[self.tlayer - 1] * np.abs(self.z - self.tz[0]))
@@ -575,6 +585,7 @@ class BaseEm(metaclass=ABCMeta):
                     * np.exp(-u[self.tlayer - 1] * np.abs(self.z - self.tz[0]))) * u[self.rlayer - 1] / u[self.tlayer - 1]
             kernel_te_hz = kernel_te_er
             kernel.extend((kernel_tm_er , kernel_te_er, kernel_tm_ez, kernel_tm_hr, kernel_te_hr, kernel_te_hz))
+        self.kernel = kernel
         return kernel
 
     def compute_hankel_transform(self, transmitter, omega):

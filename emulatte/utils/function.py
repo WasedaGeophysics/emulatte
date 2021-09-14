@@ -12,6 +12,12 @@ def ndarray_converter(array_like, valiable_name):
     if type(array_like) in types:
         array = np.array(array_like, dtype=np.float64)
         return array
+    elif type(array_like) in [int, float]:
+        array = np.array([array_like], dtype=np.float64)
+        return array
+    elif type(array_like) in [complex]:
+        array = np.array([array_like], dtype=np.complex64)
+        return array
     else:
         print('TypeError : {} must be input as list, tuple or ndarray'.format(
             valiable_name

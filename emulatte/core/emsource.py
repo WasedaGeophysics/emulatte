@@ -6,12 +6,13 @@
 import numpy as np
 from scipy import interpolate
 from emulatte.core import transform
+from emulatte.utils.function import ndarray_converter
 class Core:
     def __init__(self, freqtime):
         self.name = self.__class__.__name__.lower()
-        self.freqtime = freqtime # Common in FD and TD
-        self.omegas = 2 * np.pi * freqtime # Only using in FD
-        self.ft_size = len(freqtime)
+        self.freqtime = ndarray_converter(freqtime, 'freqtime') # Common in FD and TD
+        self.omegas = 2 * np.pi * self.freqtime # Only using in FD
+        self.ft_size = len(self.freqtime)
 
     def get_result(
             self, model, time_diff=False, td_transform=None):
@@ -124,10 +125,10 @@ class VMD(Core):
     Vertical Magnetic Dipole
     Horizontal Co-planar (HCP __ -> __ )
     """
-    def __init__(self, freqtime, dipole_moment):
+    def __init__(self, freqtime, moment):
         super().__init__(freqtime)
         #VMD固有設定値
-        self.moment = dipole_moment
+        self.moment = moment
         self.num_dipole = 1
         self.kernel_te_up_sign = 1
         self.kernel_te_down_sign = 1
@@ -140,7 +141,7 @@ class HMDx(Core):
     Horizontal Magnetic Dipole x 
         Vertial Co-axial (VCA  | -> | )
     """
-    def __init__(self, freqtime, dipole_moment):
+    def __init__(self, freqtime, moment):
         super().__init__(freqtime)
         self.moment = dipole_moment
         self.num_dipole = 1
@@ -155,7 +156,7 @@ class HMDy(Core):
     Horizontal Magnetic Dipole y 
         Vertial Co-planar (VCP  o -> o)
     """
-    def __init__(self, freqtime, dipole_moment):
+    def __init__(self, freqtime, moment):
         super().__init__(freqtime)
         self.moment = dipole_moment
         self.num_dipole = 1
