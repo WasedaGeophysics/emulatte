@@ -1,4 +1,4 @@
-#emulatte/scripts_forward/modelw.py
+
 # -*- coding: utf-8 -*-
 """
 Electromagnetic ground model class group
@@ -106,7 +106,7 @@ class Subsurface1D:
             ignore_displacement_current = False, 
             time_diff=False, td_transform=None):
         """
-        
+
         """
         if not bool(td_transform):
             self.domain = 'Freq'
@@ -394,16 +394,16 @@ class Subsurface1D:
             e_up = np.exp(-u[ri - 1] * (self.rz - self.depth[ri - 2]))
             e_down = np.exp(u[ri - 1] * (self.rz - self.depth[ri - 1]))
 
-        self.r_te = r_te
-        self.r_tm = r_tm
-        self.R_te = R_te
-        self.R_tm = R_tm
-        self.U_te = U_te
-        self.U_tm = U_tm
-        self.D_te = D_te
-        self.D_tm = D_tm
-        self.e_up = e_up
-        self.e_down = e_down
+        #self.r_te = r_te
+        #self.r_tm = r_tm
+        #self.R_te = R_te
+        #self.R_tm = R_tm
+        #self.U_te = U_te
+        #self.U_tm = U_tm
+        #self.D_te = D_te
+        #self.D_tm = D_tm
+        #self.e_up = e_up
+        #self.e_down = e_down
         return U_te, U_tm, D_te, D_tm, e_up, e_down
 
     def in_which_layer(self, z):
