@@ -1,4 +1,16 @@
-
+# Copyright 2021 Waseda Geophysics Laboratory
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # -*- coding: utf-8 -*-
 """
 Electromagnetic ground model class group
@@ -31,18 +43,22 @@ class Subsurface1D:
         ### ELECTRIC PERMITTIVITY ###
         if 'epsilon' in kwds:
             self.epsln = ndarray_converter(props['epsilon'], 'epsilon')
+            self.epsln = np.insert(self.array, 0, const.epsilon_0)
         elif 'epsilon_r' in kwds:
             epsilon_r = ndarray_converter(props['epsilon_r'], 'epsilon_r')
             self.epsln = epsilon_r * const.epsilon_0
+            self.epsln = np.insert(self.array, 0, const.epsilon_0)
         else:
             self.epsln = np.ones(self.num_layer) * const.epsilon_0
 
         ### MAGNETIC PERMEABILITY ###
         if 'mu' in kwds:
             self.mu = ndarray_converter(props['mu'], 'mu')
+            self.mu = np.insert(self.array, 0, const.mu_0)
         elif 'mu_r' in kwds:
             mu_r = ndarray_converter(props['mu_r'], 'mu_r')
             self.mu = mu_r * const.mu_0
+            self.mu = np.insert(self.array, 0, const.mu_0)
         else:
             self.mu = np.ones(self.num_layer) * const.mu_0
 
@@ -50,6 +66,7 @@ class Subsurface1D:
         if 'res' in kwds:
             res = ndarray_converter(props['res'], 'res')
             self.sigma = 1 / res
+            self.sigma = np.insert(self.array, 0, 5e-15)
         ### COMPLEX RESISTIVITY MODEL (Pelton et al. (1978)) ###
         elif ('res_0' in kwds) & ('m' in kwds):
             self.res_0 = ndarray_converter(props['res_0'], 'res_0')

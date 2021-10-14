@@ -1268,7 +1268,7 @@ class BaseEm(metaclass=ABCMeta):
 
             self.num_v  = len(self.tx) # v means vertex
             #num_v_end = self.num_v
-            num_d = 100
+            num_d = int(np.trunc(2 * self.d))
 
             tx_dipole = np.array([])
             ty_dipole = np.array([])
@@ -1368,7 +1368,7 @@ class BaseEm(metaclass=ABCMeta):
                 print("theta = " + str(np.rad2deg(theta)))
                 print("phai = " + str(np.rad2deg(phai)))
 
-            num_d = 100
+            num_d = int(np.trunc(2 * self.d))
             tx_dipole = np.array([])
             ty_dipole = np.array([])
             tz_dipole = np.array([])
