@@ -176,8 +176,6 @@ def compute_kernel_circular(model, omega):
                     / model.u[model.slayer - 1]
     kernel = [kernel_e_phi, kernel_h_r, kernel_h_z]
     kernel = np.array(kernel)
-    model.kernel = [kernel, kernel_te, kernel_te_hr]
-    model.kernel_te = kernel_te
     return kernel
 
 def compute_kernel_coincident(model, omega):
@@ -193,5 +191,5 @@ def compute_kernel_coincident(model, omega):
     besk1rad = jn(1, model.lambda_ * model.src.radius)
     kernel_h_z = kernel_te * model.lambda_ * besk1rad \
                     / model.u[model.slayer - 1]
-    kernel = np.array([kernel_h_z])
+    kernel = np.array(kernel_h_z)
     return kernel

@@ -69,37 +69,108 @@ class Subsurface1D:
         self.src = emsrc
         sc = ndarray_converter(sc, 'sc')
         rc = ndarray_converter(rc, 'rc')
+        DIPOLE = [
+            'VMD', 'HMDx', 'HMDy',
+            'VED', 'HEDx', 'HEDy',
+            'CoincidentLoop', 'CircularLoop'
+        ]
 
-        sx, sy, sz = np.array([sc]).T
-        rx, ry, rz = np.array([rc]).T
-        r = np.sqrt((rx - sx) ** 2 + (ry - sy) ** 2)
+        if emsrc.__class__.__name__ in DIPOLE:
+            sx, sy, sz = np.array([sc]).T
+            rx, ry, rz = np.array([rc]).T
+            r = np.sqrt((rx - sx) ** 2 + (ry - sy) ** 2)
 
-        # 計算できない送受信座標が入力された場合の処理
-        delta_z = 1e-8      #filterがanderson801の時は1e-4?
+            # 計算できない送受信座標が入力された場合の処理
+            delta_z = 1e-8      #filterがanderson801の時は1e-4?
 
-        if r == 0:
-            r = 1e-8
-        if sz in self.depth:
-            sz = sz - delta_z
-        if sz == rz:
-            sz = sz - delta_z
+            if r == 0:
+                r = 1e-8
+            if sz in self.depth:
+                sz = sz - delta_z
+            if sz == rz:
+                sz = sz - delta_z
 
-        # Azimuth?
-        cos_phi = (rx - sx) / r
-        sin_phi = (ry - sy) / r
+            # Azimuth?
+            cos_phi = (rx - sx) / r
+            sin_phi = (ry - sy) / r
 
-        # 送受信点が含まれる層の特定
-        slayer = self.in_which_layer(sz)
-        rlayer = self.in_which_layer(rz)
+            # 送受信点が含まれる層の特定
+            slayer = self.in_which_layer(sz)
+            rlayer = self.in_which_layer(rz)
 
-        # return to self
-        self.sx, self.sy ,self.sz = sx, sy, sz
-        self.rx, self.ry ,self.rz = rx, ry, rz
-        self.slayer = slayer 
-        self.rlayer = rlayer
-        self.r = r
-        self.cos_phi = cos_phi
-        self.sin_phi = sin_phi
+            # return to self
+            self.sx, self.sy ,self.sz = sx, sy, sz
+            self.rx, self.ry ,self.rz = rx, ry, rz
+            self.slayer = slayer 
+            self.rlayer = rlayer
+            self.r = r
+            self.cos_phi = cos_phi
+            self.sin_phi = sin_phi
+
+        elif emsrc.__class__.__name__ == 'GroundedWire':
+            sx, sy, sz = np.array([sc]).T
+            rx, ry, rz = np.array([rc]).T
+            length = np.sqrt((sx[1] - sx[0]) ** 2 + (sy[1] - sy[0]) ** 2)
+            cos_theta = (sx[1] - sx[0]) / length
+            sin_theta = (sy[1] - sy[0]) / length
+
+            if sz[0] != sz[1]:
+                raise Exception('Z-coordinates of the wire ends must be the same value.')
+
+            # 計算できない送受信座標が入力された場合の処理
+            delta_z = 1e-8
+            if sz[0] in self.depth:
+                sz = sz - delta_z
+            if sz[0] == rz[0]:
+                sz = sz - delta_z
+
+            nsplit = emsrc.nsplit
+            # 節点
+            sx_node = np.linspace(sx[0], sx[1], nsplit + 1)
+            sy_node = np.linspace(sy[0], sy[1], nsplit + 1)
+            sz_node = np.linspace(sz[0], sz[1], nsplit + 1)
+
+            sx_dipole = np.array([(sx_node[i] + sx_node[i+1]) / 2 for i in range(nsplit)])
+            sy_dipole = np.array([(sy_node[i] + sy_node[i+1]) / 2 for i in range(nsplit)])
+            sz_dipole = np.array([(sz_node[i] + sz_node[i+1]) / 2 for i in range(nsplit)])
+
+            ds = length / nsplit
+
+            def rotate_coordinate(x, y, z, cos_theta, sin_theta):
+                rot_matrix = np.array([[cos_theta, sin_theta, 0], [-sin_theta, cos_theta, 0], [0, 0, 1]], dtype=object)
+                rot_coord = np.dot(rot_matrix, np.array([x, y, z])).reshape(3)
+                return rot_coord
+
+            rotsc = np.ones((nsplit, 3))
+            #for i in range(self.num_dipole):
+            #    rotsc[i, :] = rotate_coordinate(sx_node[i], sy_node[i], sz_node[i], cos_theta, sin_theta)
+            for i in range(nsplit):
+                rotsc[i, :] = rotate_coordinate(sx_dipole[i], sy_dipole[i], sz_dipole[i], cos_theta, sin_theta)
+
+            rotrc = rotate_coordinate(rx, ry, rz, cos_theta, sin_theta)
+
+            xx = rotrc[0] - rotsc[:, 0]
+            yy = rotrc[1] - rotsc[:, 1]
+
+            rn = np.ones(nsplit)
+            for i in range(nsplit):
+                rn[i] = np.sqrt(xx[i] ** 2 + yy[i] ** 2)
+
+            slayer = self.in_which_layer(sz[0])
+            rlayer = self.in_which_layer(rz)
+
+            self.sx, self.sy , self.sz = sx, sy, sz[0]
+            self.rx, self.ry , self.rz = rx, ry, rz
+            self.xx, self.yy , self.rn = xx, yy, rn
+            self.ds = ds
+            self.slayer = slayer 
+            self.rlayer = rlayer
+            self.cos_theta = cos_theta
+            self.sin_theta = sin_theta
+
+
+
+            
 
     #== MAIN EXECUTOR ====================================#
     def emulate(self, hankel_filter, 

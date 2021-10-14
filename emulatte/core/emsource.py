@@ -224,18 +224,7 @@ class CoincidentLoop(Core):
         self.kernel_tm_down_sign = 0
         self.hankel_transform = transform.HankelTransform.coincident_loop
 
-class _GroundedWire(Core):
-    def __init__(self, freqtime, current):
-        super().__init__(freqtime)
-        self.current = current
-        self.moment = current
-        self.kernel_te_up_sign = 1
-        self.kernel_te_down_sign = 1
-        self.kernel_tm_up_sign = -1
-        self.kernel_tm_down_sign = 1
-        self.hankel_transform = transform.HankelTransform.grounded_wire
-
-class _LoopSource(Core):
+class SquareLoop(Core):
     def __init__(self, freqtime, current, turns):
         super().__init__(freqtime)
         self.current = current
@@ -247,10 +236,16 @@ class _LoopSource(Core):
         self.kernel_tm_down_sign = 1
         self.hankel_transform = transform.HankelTransform.loop_source
 
+class GroundedWire(Core):
+    def __init__(self, freqtime, current, nsplit):
+        super().__init__(freqtime)
+        self.current = current
+        self.nsplit = nsplit
+        self.moment = current
+        self.kernel_te_up_sign = 1
+        self.kernel_te_down_sign = 1
+        self.kernel_tm_up_sign = -1
+        self.kernel_tm_down_sign = 1
+        self.hankel_transform = transform.HankelTransform.grounded_wire
 
-
-
-
-
-
-
+    

@@ -503,102 +503,113 @@ class HankelTransform:
         """
         y_base, wt0, wt1 = filters.load_hankel_filter(model.hankel_filter)
         model.filter_length = len(y_base)
-        y_base_wire = np.ones((model.filter_length, model.src.num_dipole)) \
-                        * model.y_base
-        model.lamda = y_base_wire / model.rn
-        kernel = kernels.compute_kernel_hed(model, omega)
-        ans = {}
-        tm_er_g_first = np.dot(wt1, kernel[0][:, 0]) / model.rn[0, 0]
-        tm_er_g_end = np.dot(wt1, kernel[0][:, model.src.num_dipole - 1]) \
-                        / model.rn[0, model.src.num_dipole - 1]
-        te_er_g_first = np.dot(wt1, kernel[1][:, 0]) / model.rn[0, 0]
-        te_er_g_end = np.dot(wt1, kernel[1][:, model.src.num_dipole - 1]) \
-                        / model.rn[0, model.src.num_dipole - 1]
+        y_base_wire = np.ones((model.filter_length, model.src.nsplit)) \
+                        * np.array([y_base]).T
+        lambda_ = y_base_wire / model.rn
+        kernel = np.zeros((6, model.filter_length, model.src.nsplit), dtype=complex)
+        for i in range(model.src.nsplit):
+            model.lambda_ = lambda_[:,i]
+            kernel[:,:,i] = kernels.compute_kernel_hed(model, omega)
+        model.lambda_ = lambda_
+        tm_er_g_first = np.dot(wt1, kernel[0][:, 0]) / model.rn[0]
+        tm_er_g_end = np.dot(wt1, kernel[0][:, model.src.nsplit - 1]) \
+                        / model.rn[model.src.nsplit - 1]
+        te_er_g_first = np.dot(wt1, kernel[1][:, 0]) / model.rn[0]
+        te_er_g_end = np.dot(wt1, kernel[1][:, model.src.nsplit - 1]) \
+                        / model.rn[model.src.nsplit - 1]
         tm_ez_1 = np.dot(wt0, kernel[2][:, 0] * model.lambda_[:, 0]) \
-                        / model.rn[0, 0]
-        tm_ez_2 = np.dot(wt0, kernel[2][:, model.src.num_dipole - 1] \
-                        * model.lambda_[:, model.src.num_dipole - 1]) \
-                        / model.rn[0, model.src.num_dipole - 1]
-        tm_hr_g_first = np.dot(wt1, kernel[3][:, 0]) / model.rn[0, 0]
-        tm_hr_g_end = np.dot(wt1, kernel[3][:, model.src.num_dipole - 1]) \
-                        / model.rn[0, model.src.num_dipole - 1]
-        te_hr_g_first = np.dot(wt1, kernel[4][:, 0]) / model.rn[0, 0]
-        te_hr_g_end = np.dot(wt1, kernel[4][:, model.src.num_dipole - 1]) \
-                        / model.rn[0, model.src.num_dipole - 1]
+                        / model.rn[0]
+        tm_ez_2 = np.dot(wt0, kernel[2][:, model.src.nsplit - 1] \
+                        * model.lambda_[:, model.src.nsplit - 1]) \
+                        / model.rn[model.src.nsplit - 1]
+        tm_hr_g_first = np.dot(wt1, kernel[3][:, 0]) / model.rn[0]
+        tm_hr_g_end = np.dot(wt1, kernel[3][:, model.src.nsplit - 1]) \
+                        / model.rn[model.src.nsplit - 1]
+        te_hr_g_first = np.dot(wt1, kernel[4][:, 0]) / model.rn[0]
+        te_hr_g_end = np.dot(wt1, kernel[4][:, model.src.nsplit - 1]) \
+                        / model.rn[model.src.nsplit - 1]
         te_hz_l = np.dot(wt1, kernel[5] * model.lambda_ ** 2) / model.rn
         te_ex_l = np.dot(wt0, kernel[1] * model.lambda_) / model.rn
         te_hy_l = np.dot(wt0, kernel[4] * model.lambda_) / model.rn
 
-        amp_tm_ex_1 = (model.xx[0] / model.rn[0,0]) \
+        amp_tm_ex_1 = (model.xx[0] / model.rn[0]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
-        amp_tm_ex_2 = (-model.xx[model.src.num_dipole-1] \
-                            / model.rn[0, model.src.num_dipole-1]) \
+        amp_tm_ex_2 = (-model.xx[model.src.nsplit-1] \
+                            / model.rn[model.src.nsplit-1]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
-        amp_te_ex_1 = (model.xx[0] / model.rn[0, 0]) \
+        amp_te_ex_1 = (model.xx[0] / model.rn[0]) \
                         * model.ztilde[model.slayer - 1] / (4 * np.pi)
-        amp_te_ex_2 = (-model.xx[model.src.num_dipole-1] \
-                        / model.rn[0, model.src.num_dipole-1]) \
+        amp_te_ex_2 = (-model.xx[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]) \
                         * model.ztilde[model.slayer - 1] / (4 * np.pi)
         te_ex_line = -model.ztilde[model.slayer - 1] / (4 * np.pi)
-        amp_tm_ey_1 = (model.yy[0] / model.rn[0,0]) \
+        amp_tm_ey_1 = (model.yy[0] / model.rn[0]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
-        amp_tm_ey_2 = (-model.yy[model.src.num_dipole-1] \
-                        / model.rn[0, model.src.num_dipole-1]) \
+        amp_tm_ey_2 = (-model.yy[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1])
-        amp_te_ey_1 = (model.yy[0] / model.rn[0, 0]) \
+        amp_te_ey_1 = (model.yy[0] / model.rn[0]) \
                         * model.ztilde[model.slayer - 1] / (4 * np.pi)
-        amp_te_ey_2 =  (-model.yy[model.src.num_dipole-1] \
-                        / model.rn[0, model.src.num_dipole-1]) \
+        amp_te_ey_2 =  (-model.yy[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]) \
                         * model.ztilde[model.slayer - 1] / (4 * np.pi)
         amp_tm_ez_1 = 1 / (4 * np.pi * model.ytilde[model.rlayer - 1])
         amp_tm_ez_2 = -1 / (4 * np.pi * model.ytilde[model.rlayer - 1])
-        amp_tm_hx_1 = 1 / (4 * np.pi) * model.yy[0] / model.rn[0,0]
-        amp_tm_hx_2 = - 1 / (4 *np.pi) * model.yy[model.src.num_dipole-1] \
-                        / model.rn[0,model.src.num_dipole-1]
+        amp_tm_hx_1 = 1 / (4 * np.pi) * model.yy[0] / model.rn[0]
+        amp_tm_hx_2 = - 1 / (4 *np.pi) * model.yy[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]
         amp_te_hx_1 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi) \
-                        * model.yy[0] / model.rn[0,0]
+                        * model.yy[0] / model.rn[0]
         amp_te_hx_2 = - model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 *np.pi) \
-                        * model.yy[model.src.num_dipole-1] \
-                        / model.rn[0,model.src.num_dipole-1]
-        amp_tm_hy_1 = -1 / (4 * np.pi) * model.xx[0] / model.rn[0,0]
-        amp_tm_hy_2 = 1 / ( 4 *np.pi) * model.xx[model.src.num_dipole-1] \
-                        / model.rn[0,model.src.num_dipole-1]
+                        * model.yy[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]
+        amp_tm_hy_1 = -1 / (4 * np.pi) * model.xx[0] / model.rn[0]
+        amp_tm_hy_2 = 1 / ( 4 *np.pi) * model.xx[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]
         amp_te_hy_1 = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi) \
-                        * model.xx[0] / model.rn[0,0]
+                        * model.xx[0] / model.rn[0]
         amp_te_hy_2 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi) \
-                        * model.xx[model.src.num_dipole-1] \
-                        / model.rn[0,model.src.num_dipole-1]
+                        * model.xx[model.src.nsplit-1] \
+                        / model.rn[model.src.nsplit-1]
         te_hy_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
 
-        ans["e_x"] = (amp_tm_ex_1 * tm_er_g_first \
+        rot_ans = {}
+        rot_ans["e_x"] = (amp_tm_ex_1 * tm_er_g_first \
                         + amp_tm_ex_2 * tm_er_g_end \
                         + amp_te_ex_1 * te_er_g_first \
                         + amp_te_ex_2 * te_er_g_end) \
                         + te_ex_line * model.ds \
-                        * np.dot(te_ex_l, np.ones((model.src.num_dipole,1)))
-        ans["e_y"] = amp_tm_ey_1 * tm_er_g_first + amp_tm_ey_2 * tm_er_g_end \
+                        * np.dot(te_ex_l, np.ones((model.src.nsplit)))
+        rot_ans["e_y"] = amp_tm_ey_1 * tm_er_g_first + amp_tm_ey_2 * tm_er_g_end \
                         + amp_te_ey_1 * te_er_g_first \
                         + amp_te_ey_2 * te_er_g_end
-        ans["e_z"] = amp_tm_ez_1 * tm_ez_1 + amp_tm_ez_2 * tm_ez_2
-        ans["h_x"] = (amp_tm_hx_1 * tm_hr_g_first \
+        rot_ans["e_z"] = amp_tm_ez_1 * tm_ez_1 + amp_tm_ez_2 * tm_ez_2
+        rot_ans["h_x"] = (amp_tm_hx_1 * tm_hr_g_first \
                         + amp_tm_hx_2 * tm_hr_g_end \
                         + amp_te_hx_1 * te_hr_g_first \
                         + amp_te_hx_2 * te_hr_g_end)
-        ans["h_y"] = amp_tm_hy_1 * tm_hr_g_first \
+        rot_ans["h_y"] = amp_tm_hy_1 * tm_hr_g_first \
                         + amp_tm_hy_2 * tm_hr_g_end \
                         + amp_te_hy_1 * te_hr_g_first \
                         + amp_te_hy_2 * te_hr_g_end \
                         + te_hy_line * model.ds \
-                        * np.dot(te_hy_l, np.ones((model.src.num_dipole,1)))
-        ans["h_z"] = np.dot(model.ztilde[model.slayer - 1] \
+                        * np.dot(te_hy_l, np.ones((model.src.nsplit)))
+        rot_ans["h_z"] = np.dot(model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
                         * model.yy / model.rn * model.ds / (4*np.pi) \
                         ,te_hz_l.T)
+        ans = {}
+        ans["e_x"] = model.cos_theta * rot_ans["e_x"] - model.sin_theta * rot_ans["e_y"]
+        ans["e_y"] = model.cos_theta * rot_ans["e_y"] + model.sin_theta * rot_ans["e_x"]
+        ans["e_z"] = rot_ans["e_z"]
+        ans["h_x"] = model.cos_theta * rot_ans["h_x"] - model.sin_theta * rot_ans["h_y"]
+        ans["h_y"] = model.cos_theta * rot_ans["h_y"] + model.sin_theta * rot_ans["h_x"]
+        ans["h_z"] = rot_ans["h_z"]
         return ans
     
     @staticmethod
