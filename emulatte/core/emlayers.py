@@ -43,22 +43,18 @@ class Subsurface1D:
         ### ELECTRIC PERMITTIVITY ###
         if 'epsilon' in kwds:
             self.epsln = ndarray_converter(props['epsilon'], 'epsilon')
-            self.epsln = np.insert(self.array, 0, const.epsilon_0)
         elif 'epsilon_r' in kwds:
             epsilon_r = ndarray_converter(props['epsilon_r'], 'epsilon_r')
             self.epsln = epsilon_r * const.epsilon_0
-            self.epsln = np.insert(self.array, 0, const.epsilon_0)
         else:
             self.epsln = np.ones(self.num_layer) * const.epsilon_0
 
         ### MAGNETIC PERMEABILITY ###
         if 'mu' in kwds:
             self.mu = ndarray_converter(props['mu'], 'mu')
-            self.mu = np.insert(self.array, 0, const.mu_0)
         elif 'mu_r' in kwds:
             mu_r = ndarray_converter(props['mu_r'], 'mu_r')
             self.mu = mu_r * const.mu_0
-            self.mu = np.insert(self.array, 0, const.mu_0)
         else:
             self.mu = np.ones(self.num_layer) * const.mu_0
 
@@ -66,7 +62,6 @@ class Subsurface1D:
         if 'res' in kwds:
             res = ndarray_converter(props['res'], 'res')
             self.sigma = 1 / res
-            self.sigma = np.insert(self.array, 0, 5e-15)
         ### COMPLEX RESISTIVITY MODEL (Pelton et al. (1978)) ###
         elif ('res_0' in kwds) & ('m' in kwds):
             self.res_0 = ndarray_converter(props['res_0'], 'res_0')
@@ -184,10 +179,6 @@ class Subsurface1D:
             self.rlayer = rlayer
             self.cos_theta = cos_theta
             self.sin_theta = sin_theta
-
-
-
-            
 
     #== MAIN EXECUTOR ====================================#
     def emulate(self, hankel_filter, 
