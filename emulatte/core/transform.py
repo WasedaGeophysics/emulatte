@@ -86,63 +86,63 @@ class HankelTransform:
         te_hr_2 = np.dot(wt1, kernel[4]) / model.r
         te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
         amp_tm_ex_1 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
         amp_tm_ex_2 =  (model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 3)
         amp_te_ex_1 = - model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ex_2 =   model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3)
         amp_tm_ey_1 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.ry - model.ty) ** 2 \
+                        * (model.ry - model.sy) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
         amp_tm_ey_2 =  (model.ztilde * model.ytilde)[model.slayer - 1] \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1]) \
-                        * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 - 1 \
+                        * (2 * (model.ry - model.sy) ** 2 / model.r ** 3 - 1 \
                             / model.r)
         amp_te_ey_1 =  model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) ** 2 \
+                        * (model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ey_2 = -model.ztilde[model.slayer - 1] \
-                        / (4 * np.pi) * (2 * (model.rx - model.tx) ** 2 \
+                        / (4 * np.pi) * (2 * (model.rx - model.sx) ** 2 \
                             / model.r ** 3 - 1 / model.r)
-        amp_tm_ez = - model.ztilde[0,model.slayer - 1] \
-                        * (model.ry - model.ty) / (4 * np.pi * model.r)
+        amp_tm_ez = - model.ztilde[model.slayer - 1] \
+                        * (model.ry - model.sy) / (4 * np.pi * model.r)
         amp_tm_hx_1 = model.k[model.slayer - 1] ** 2  \
-                        * (model.ry - model.ty) ** 2 / model.r ** 2 \
+                        * (model.ry - model.sy) ** 2 / model.r ** 2 \
                         / (4 * np.pi)
         amp_tm_hx_2 =  - model.k[model.slayer - 1] ** 2 \
-                        * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+                        * (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_hx_1 = (model.rx - model.tx) ** 2 / (4 * np.pi * model.r ** 2)\
+        amp_te_hx_1 = (model.rx - model.sx) ** 2 / (4 * np.pi * model.r ** 2)\
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hx_2 = - model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (2 * (model.rx - model.tx) ** 2 / model.r ** 2 - 1)\
+                        * (2 * (model.rx - model.sx) ** 2 / model.r ** 2 - 1)\
                         / model.r / (4 * np.pi)
         amp_tm_hy_1 = -model.k[model.slayer - 1]** 2 / (4 * np.pi) \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / model.r ** 2
         amp_tm_hy_2 = - amp_tm_hy_1 / model.r * 2
         amp_te_hy_1 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        / (4 * np.pi) * (model.rx - model.tx) \
-                        * (model.ry - model.ty) / model.r ** 2
+                        / (4 * np.pi) * (model.rx - model.sx) \
+                        * (model.ry - model.sy) / model.r ** 2
         amp_te_hy_2 = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        / (2 * np.pi) * (model.rx - model.tx) \
-                        * (model.ry - model.ty) / model.r ** 3
+                        / (2 * np.pi) * (model.rx - model.sx) \
+                        * (model.ry - model.sy) / model.r ** 3
         amp_te_hz = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.rx - model.tx) / (4 * np.pi * model.r)
+                        * (model.rx - model.sx) / (4 * np.pi * model.r)
 
         ans["e_x"] = amp_tm_ex_1 * tm_er_1 + amp_tm_ex_2 * tm_er_2 \
                     + amp_te_ex_1 * te_er_1 + amp_te_ex_2 * te_er_2
@@ -178,65 +178,65 @@ class HankelTransform:
         te_hz = np.dot(wt1, kernel[5]* model.lambda_**2) / model.r
 
         amp_tm_ex_1 = (model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) ** 2 \
+                        * (model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
         amp_tm_ex_2 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1]) \
-                        * (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
+                        * (2 * (model.rx - model.sx) ** 2 / model.r ** 3 \
                             - 1 / model.r)
         amp_te_ex_1 = -model.ztilde[model.slayer - 1] \
-                        * (model.ry - model.ty) ** 2 \
+                        * (model.ry - model.sy) ** 2 \
                             / (4 * np.pi * model.r ** 2)
         amp_te_ex_2 =  model.ztilde[model.slayer - 1] / (4 * np.pi) \
-                        * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+                        * (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                             - 1 / model.r)
 
         amp_tm_ey_1 = (model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
         amp_tm_ey_2 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 3)
         amp_te_ey_1 = model.ztilde[0,  model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ey_2 = - model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3)
         amp_tm_ez = -(model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) \
+                        * (model.rx - model.sx) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r)
 
         amp_tm_hx_1 = (model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
         amp_tm_hx_2 = - amp_tm_hx_1 * 2 / model.r
         amp_te_hx_1 = model.ztilde[model.slayer - 1]  \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
         amp_te_hx_2 = - amp_te_hx_1* 2 / model.r
         amp_tm_hy_1 = -(model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (model.rx - model.tx) ** 2 \
+                        * (model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
         amp_tm_hy_2 = (model.ztilde * model.ytilde)[model.slayer - 1] \
-                        * (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
+                        * (2 * (model.rx - model.sx) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
         amp_te_hy_1 = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.ry - model.ty) ** 2 \
+                        * (model.ry - model.sy) ** 2 \
                         / (4 * np.pi * model.r ** 2)
         amp_te_hy_2 = - model.ztilde[0,  model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+                        * (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
         amp_te_hz =  model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.ry - model.ty) / (4 * np.pi * model.r)
+                        * (model.ry - model.sy) / (4 * np.pi * model.r)
 
         ans["e_x"] = amp_tm_ex_1 * tm_er_1 + amp_tm_ex_2 * tm_er_2 \
                         + amp_te_ex_1 * te_er_1 + amp_te_ex_2 * te_er_2
@@ -296,56 +296,56 @@ class HankelTransform:
         te_hr_2 = np.dot(wt1, kernel[4]) / model.r
         te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
 
-        amp_tm_ex_g_1 = (model.rx - model.tx) ** 2 \
+        amp_tm_ex_g_1 = (model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ex_g_2 =  - (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
+        amp_tm_ex_g_2 =  - (2 * (model.rx - model.sx) ** 2 / model.r ** 3 \
                                 - 1 / model.r) \
                             / (4 * np.pi \
                                 * model.ytilde[model.rlayer - 1])
         amp_te_ex_g_1 = model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) ** 2 \
+                        * (model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ex_g_2 = - model.ztilde[model.slayer - 1] \
-                        * (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
+                        * (2 * (model.rx - model.sx) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
         amp_te_ex_line = - model.ztilde[model.slayer - 1] / (4 * np.pi)
-        amp_tm_ey_g_1 = (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_ey_g_1 = (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ey_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_ey_g_2 = - (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r**3 )
         amp_te_ey_g_1 = + model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ey_g_2 = - model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3)
-        amp_tm_ez = (model.rx - model.tx) \
+        amp_tm_ez = (model.rx - model.sx) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r)
-        amp_tm_hx_g_1 = (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_hx_g_1 = (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
-        amp_tm_hx_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_hx_g_2 = - (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3)
-        amp_te_hx_g_1 = + (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_te_hx_g_1 = + (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hx_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_te_hx_g_2 = - (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_tm_hy_g_1 = -(model.rx - model.tx) ** 2 \
+        amp_tm_hy_g_1 = -(model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_tm_hy_g_2 = (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
+        amp_tm_hy_g_2 = (2 * (model.rx - model.sx) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_hy_g_1 = - (model.rx - model.tx) ** 2 \
+        amp_te_hy_g_1 = - (model.rx - model.sx) ** 2 \
                         / (4 * np.pi * model.r ** 2) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hy_g_2 = (2 * (model.rx - model.tx) ** 2 / model.r ** 3 \
+        amp_te_hy_g_2 = (2 * (model.rx - model.sx) ** 2 / model.r ** 3 \
                         - 1 / model.r) / (4 * np.pi) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
@@ -354,7 +354,7 @@ class HankelTransform:
                         / (4 * np.pi)
         amp_te_hz_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.ry - model.ty) / (4 * np.pi * model.r)
+                        * (model.ry - model.sy) / (4 * np.pi * model.r)
 
         ans["e_x"] = amp_tm_ex_g_1 * tm_er_1 + amp_tm_ex_g_2 * tm_er_2 \
                         + amp_te_ex_g_1 * te_er_1 + amp_te_ex_g_2 * te_er_2 \
@@ -391,62 +391,62 @@ class HankelTransform:
         te_hr_2 = np.dot(wt1, kernel[4]) / model.r
         te_hz = np.dot(wt1, kernel[5] * model.lambda_**2) / model.r
 
-        amp_tm_ex_g_1 = (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_ex_g_1 = (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ex_g_2 = - (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_ex_g_2 = - (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 3)
         amp_te_ex_g_1 = model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ex_g_2 = - model.ztilde[model.slayer - 1] \
-                        * (model.rx - model.tx) * (model.ry - model.ty) \
+                        * (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3)
-        amp_tm_ey_g_1 = (model.ry - model.ty) ** 2 \
+        amp_tm_ey_g_1 = (model.ry - model.sy) ** 2 \
                         / (4 * np.pi * model.ytilde[model.rlayer - 1] \
                             * model.r ** 2)
-        amp_tm_ey_g_2 = - (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+        amp_tm_ey_g_2 = - (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                             - 1 / model.r) \
                         / (4 * np.pi* model.ytilde[model.rlayer - 1])
         amp_te_ey_g_1 =  model.ztilde[model.slayer - 1] \
-                        * (model.ry - model.ty) ** 2 \
+                        * (model.ry - model.sy) ** 2 \
                         / (4 * np.pi * model.r ** 2)
         amp_te_ey_g_2 = -model.ztilde[model.slayer - 1] \
-                        * (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+                        * (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
         amp_te_ey_line = - model.ztilde[model.slayer - 1] / (4 * np.pi)
-        amp_tm_ez = (model.ry - model.ty) / (4 * np.pi \
+        amp_tm_ez = (model.ry - model.sy) / (4 * np.pi \
                         * model.ytilde[model.rlayer - 1] * model.r)
-        amp_tm_hx_g_1 = (model.ry - model.ty) ** 2 \
+        amp_tm_hx_g_1 = (model.ry - model.sy) ** 2 \
                         / (4 * np.pi * model.r ** 2)
-        amp_tm_hx_g_2 = - (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+        amp_tm_hx_g_2 = - (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                             - 1 / model.r) / (4 * np.pi)
-        amp_te_hx_g_1 = + (model.ry - model.ty) ** 2 \
+        amp_te_hx_g_1 = + (model.ry - model.sy) ** 2 \
                         / (4 * np.pi * model.r ** 2) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hx_g_2 = - (2 * (model.ry - model.ty) ** 2 / model.r ** 3 \
+        amp_te_hx_g_2 = - (2 * (model.ry - model.sy) ** 2 / model.r ** 3 \
                         - 1 / model.r) / (4 * np.pi) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hx_line = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
-        amp_tm_hy_g_1 = - (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_hy_g_1 = - (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2)
-        amp_tm_hy_g_2 = (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_tm_hy_g_2 = (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3)
-        amp_te_hy_g_1 = - (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_te_hy_g_1 = - (model.rx - model.sx) * (model.ry - model.sy) \
                         / (4 * np.pi * model.r ** 2) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
-        amp_te_hy_g_2 = (model.rx - model.tx) * (model.ry - model.ty) \
+        amp_te_hy_g_2 = (model.rx - model.sx) * (model.ry - model.sy) \
                         / (2 * np.pi * model.r ** 3) \
                         * model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1]
         amp_te_hz_line = -model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.rx - model.tx) / (4 * np.pi * model.r)
+                        * (model.rx - model.sx) / (4 * np.pi * model.r)
 
         ans["e_x"] = amp_tm_ex_g_1 * tm_er_1 + amp_tm_ex_g_2 * tm_er_2 \
                         + amp_te_ex_g_1 * te_er_1 + amp_te_ex_g_2 * te_er_2
@@ -674,7 +674,7 @@ class HankelTransform:
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
         amp_te_hz_line = model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.ry - model.ty) / (4 * np.pi * model.r)
+                        * (model.ry - model.sy) / (4 * np.pi * model.r)
 
         ans["e_x"] = model.ds * amp_te_ex_line * te_er_1
         ans["e_y"] = 0
@@ -703,7 +703,7 @@ class HankelTransform:
                         / model.ztilde[model.rlayer - 1] / (4 * np.pi)
         amp_te_hz_line = - model.ztilde[model.slayer - 1] \
                         / model.ztilde[model.rlayer - 1] \
-                        * (model.rx - model.tx) / (4 * np.pi * model.r)
+                        * (model.rx - model.sx) / (4 * np.pi * model.r)
         ans["e_x"] = 0
         ans["e_y"] = model.ds * amp_te_ey_line * te_er_1
         ans["e_z"] = 0
@@ -788,9 +788,8 @@ class FourierTransform:
         nofun = 0
         base, cos, sin = filters.load_fft_filter(
                         'anderson_sin_cos_filter_787')
-        # import filter.anderson_sin_cos_filter_787 as wt
         ffl = len(base)
-        bmax = model.src.freqtime[-1] #stet(2);
+        bmax = model.src.freqtime[-1]
         tol = 1e-12
         ntol = 1
         key = np.zeros((1, ffl))

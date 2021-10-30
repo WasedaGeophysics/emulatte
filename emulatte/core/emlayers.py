@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # -*- coding: utf-8 -*-
-"""
-Electromagnetic ground model class group
-"""
+
 import numpy as np
 import scipy.constants as const
 from emulatte.utils.function import ndarray_converter
@@ -22,9 +20,6 @@ from emulatte.utils.function import ndarray_converter
 class Subsurface1D:
     #== CONSTRUCTOR ======================================#
     def __init__(self, thicks):
-        """
-
-        """
         ### STRUCTURE ###
         thicks = ndarray_converter(thicks, 'thicks')
         # THICKNESS
@@ -37,14 +32,58 @@ class Subsurface1D:
     
     #== CHARACTERIZING LAYERS (ONLY ISOTROPIC MODEL)============================#
     def set_properties(self, **props):
+        """
+        Parameters
+        ----------
+        props : keyword arguments
+
+        List of geophysical properties
+        * Each Length must be len(thicks) + 2
+        ρ
+            Resistivity
+                res : array-like
+            Cole-Cole Resistivity Model Parameters
+                res_0 : array-like
+                    m : array-like
+                tau : array-like
+                    c : array-like
+
+        ε
+            Electric Permittivity
+                eps : array-like
+            or Relative Electric Permittivity
+                eps_r : array-like
+            default
+                eps_r = [1, 1, ... ]
+
+        μ
+            Magnetic Permeability
+                mu : array-like
+            or Relative Magnetic Permeability
+                mu_r : array-like
+            default
+                mu_r = [1, 1, ... ]
+
+        e.g.)      ρ
+            Air   2e14 Ohm-m
+            -----------------
+            L1     100 Ohm-m
+            -----------------
+            L2      50 Ohm-m      =>    res = [2e14, 100, 50, 200, 100]
+            -----------------
+            L3     200 Ohm-m
+            -----------------
+            L4     100 Ohm-m
+
+        """
         kwds = set(props.keys())
         self.cxres = False
 
         ### ELECTRIC PERMITTIVITY ###
-        if 'epsilon' in kwds:
-            self.epsln = ndarray_converter(props['epsilon'], 'epsilon')
-        elif 'epsilon_r' in kwds:
-            epsilon_r = ndarray_converter(props['epsilon_r'], 'epsilon_r')
+        if 'eps' in kwds:
+            self.epsln = ndarray_converter(props['eps'], 'eps')
+        elif 'eps_r' in kwds:
+            epsilon_r = ndarray_converter(props['eps_r'], 'eps_r')
             self.epsln = epsilon_r * const.epsilon_0
         else:
             self.epsln = np.ones(self.num_layer) * const.epsilon_0
@@ -68,6 +107,7 @@ class Subsurface1D:
             self.m = ndarray_converter(props['m'], 'm')
             self.tau = ndarray_converter(props['tau'], 'tau')
             self.c = ndarray_converter(props['c'], 'c')
+            # for complex resistivity
             self.cxres = True
         else:
             raise Exception('Could not find the input for resistivity values.')
@@ -76,7 +116,23 @@ class Subsurface1D:
     #== SET UP ===========================================#
     def locate(self, emsrc, sc, rc, **kwargs):
         """
-        Coordinates & Angles
+        Parameters
+        ----------
+        emsrc : emsource instance
+            that you can get by
+                emsrc = emulatte.forward.transmitter(name, ...)
+
+        sc : array-like (x, y, z) or [(x1,y1,z1), (x2,y2,z2), ...]
+            3D coordinates (x, y, z) of the emsource
+
+            If emsrc is Grounded Wire, input 2 end points
+                sc = [(x1,y1,z1),(x2,y2,z2)]
+            for else, sc is a single point
+
+
+        rc : array-like (x, y, z)
+            A single 3D coordinate (x, y, z) of the receiving point
+
         """
         self.src = emsrc
         sc = ndarray_converter(sc, 'sc')
@@ -185,7 +241,51 @@ class Subsurface1D:
             ignore_displacement_current = False, 
             time_diff=False, td_transform=None):
         """
+        Parameters
+        ----------
+        hankel_filter : str
+            Hankel transform Degital Filter
+            to obtain frequency domain EM fields
 
+            -"anderson801"
+            -"kong241"
+            -"mizunaga90"
+            -"werthmuller201"
+            -"key201"
+
+        td_transform : str
+            td_transform == None (default) 
+            --> return Frequency Domain EM Fields
+
+            td_transform == 'FFT', 'DLAG'  
+            --> return Time Domain EM Fields
+                FFT  : Fast Fourier Transform
+
+                DLAG : Lagged Convolution
+
+        ignore_displacement_current : bool
+            True
+                wave number k includes only conduction current 
+            False (default)
+                wave number k includes both conduction & displacement current
+
+        time_diff : bool
+            True
+                return time derivative EM field dE/dt & dH/dt
+            False
+                return raw EM field E & H
+
+        Returns
+        -------
+        ans : dictionary
+            ans = {
+                'e_x' : numpy.ndarray,
+                'e_y' : numpy.ndarray,
+                'e_z' : numpy.ndarray,
+                'h_x' : numpy.ndarray,
+                'h_y' : numpy.ndarray,
+                'h_z' : numpy.ndarray,
+            }
         """
         if not bool(td_transform):
             self.domain = 'Freq'
@@ -207,7 +307,10 @@ class Subsurface1D:
         ans, freqtime = self.src.get_result(
                         self, time_diff=time_diff, td_transform=td_transform)
         
-        return ans, freqtime
+        if td_transform == 'DLAG':
+            return ans, freqtime
+        else:
+            return ans
 
     #== COMPUTE COEFFICIENTS (called by kernel function) ===============================================#
     def compute_coefficients(self, omega):

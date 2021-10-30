@@ -247,10 +247,10 @@ class SquareLoop(Core):
         self.hankel_transform = transform.HankelTransform.loop_source
 
 class GroundedWire(Core):
-    def __init__(self, freqtime, current, nsplit):
+    def __init__(self, freqtime, current, split):
         super().__init__(freqtime)
         self.current = current
-        self.nsplit = nsplit
+        self.nsplit = split
         self.moment = current
         self.kernel_te_up_sign = 1
         self.kernel_te_down_sign = 1
