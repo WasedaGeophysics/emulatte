@@ -249,11 +249,11 @@ class Subsurface1D:
             - "werthmuller201"
             - "key201"
 
-        td_transform : str
-            td_transform == None (default) 
-            return Frequency Domain EM Fields
+        td_transform : str \\
+            td_transform == None (default) \\
+            return Frequency Domain EM Fields \\
 
-            td_transform == 'FFT', 'DLAG'  
+            td_transform == 'FFT', 'DLAG'  \\
             return Time Domain EM Fields\\
             options :
             - FFT   Fast Fourier Transform
@@ -261,7 +261,7 @@ class Subsurface1D:
 
         ignore_displacement_current : bool \\
             True  -> wave number k includes only conduction current \\
-            False -> (default) wave number k includes both conduction & displacement current
+            False -> (default) wave number k includes both conduction & displacement current 
 
         time_diff : bool \\
             True  -> return time derivative EM field dE/dt & dH/dt \\
