@@ -54,7 +54,7 @@ class Core:
         elif model.domain == 'Time':
             # Fast Fourier Transform
             if td_transform == 'FFT':
-                ans = np.zeros((self.ft_size, 6),dtype=complex)
+                ans = np.zeros((self.ft_size, 6),dtype=float)
                 nFreqsPerDecade = 1000
                 if model.hankel_filter == 'werthmuller201':
                     freq = np.logspace(-6, 8, nFreqsPerDecade)
@@ -99,7 +99,7 @@ class Core:
             # Adaptive Convolution
             elif td_transform == 'DLAG':
                 nb = int(
-                        np.fix(
+                        np.floor(
                             10 * np.log(self.freqtime[-1] / self.freqtime[0])
                         ) + 1
                      )

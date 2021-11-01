@@ -19,8 +19,8 @@ def model(thicks):
     """
     Parameters
     ----------
-    thicks : array-like
-        List of layer thickness (m)
+    thicks : array-like \\
+        List of layer thickness (m) \\
         e.g.)
             Air      ∞ m
             ------------
@@ -59,6 +59,7 @@ def transmitter(name, freqtime, **kwargs):
         "CoincidentLoop"    Coincident Loop
 
         "GroundedWire"      Grounded Wire
+    
 
     freqtime : number or list
         Frequencies (Hz) in FD transmittion

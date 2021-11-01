@@ -35,46 +35,41 @@ class Subsurface1D:
         """
         Parameters
         ----------
-        props : keyword arguments
+        **props : dict, optional
 
-        List of geophysical properties
-        * Each Length must be len(thicks) + 2
-        ρ
-            Resistivity
-                res : array-like
-            Cole-Cole Resistivity Model Parameters
-                res_0 : array-like
-                    m : array-like
-                tau : array-like
-                    c : array-like
+            geophysical properties
+            Each Length must be len(thicks) + 2 \\
+                Resistivity
+                'res' : array_like
 
-        ε
-            Electric Permittivity
-                eps : array-like
-            or Relative Electric Permittivity
-                eps_r : array-like
-            default
-                eps_r = [1, 1, ... ]
+                Cole_Cole Resistivity Model Parameters
+                'res_0' : array_like
+                'm' : array_like
+                'tau' : array_like
+                'c' : array_like
 
-        μ
-            Magnetic Permeability
-                mu : array-like
-            or Relative Magnetic Permeability
-                mu_r : array-like
-            default
-                mu_r = [1, 1, ... ]
+                Electric Permittivity
+                'eps' : array-like
+                or Relative Electric Permittivity
+                'eps_r' : array-like
+                default -> eps_r = [1, 1, ... ]
 
-        e.g.)      ρ
-            Air   2e14 Ohm-m
-            -----------------
-            L1     100 Ohm-m
-            -----------------
-            L2      50 Ohm-m      =>    res = [2e14, 100, 50, 200, 100]
-            -----------------
-            L3     200 Ohm-m
-            -----------------
-            L4     100 Ohm-m
+                Magnetic Permeability (Unrecommended)
+                'mu' : array-like
+                or Relative Magnetic Permeability
+                'mu_r' : array-like
+                default -> 'mu_r' = [1, 1, ... ]
 
+            e.g.)      ρ
+                Air   2e14 Ohm-m
+                -----------------
+                L1     100 Ohm-m
+                -----------------
+                L2      50 Ohm-m      =>    res = [2e14, 100, 50, 200, 100]
+                -----------------
+                L3     200 Ohm-m
+                -----------------
+                L4     100 Ohm-m
         """
         kwds = set(props.keys())
         self.cxres = False
@@ -118,19 +113,19 @@ class Subsurface1D:
         """
         Parameters
         ----------
-        emsrc : emsource instance
+        emsrc : emsource instance \\
             that you can get by
                 emsrc = emulatte.forward.transmitter(name, ...)
 
-        sc : array-like (x, y, z) or [(x1,y1,z1), (x2,y2,z2), ...]
+        sc : array-like (x, y, z) or [(x1,y1,z1), (x2,y2,z2), ...] \\
             3D coordinates (x, y, z) of the emsource
 
             If emsrc is Grounded Wire, input 2 end points
-                sc = [(x1,y1,z1),(x2,y2,z2)]
+                sc = [(x1,y1,z),(x2,y2,z)]
             for else, sc is a single point
 
 
-        rc : array-like (x, y, z)
+        rc : array-like (x, y, z) \\
             A single 3D coordinate (x, y, z) of the receiving point
 
         """
@@ -241,43 +236,40 @@ class Subsurface1D:
             ignore_displacement_current = False, 
             time_diff=False, td_transform=None):
         """
+        # emulate()
         Parameters
         ----------
-        hankel_filter : str
+        hankel_filter : str \\
             Hankel transform Degital Filter
-            to obtain frequency domain EM fields
-
-            -"anderson801"
-            -"kong241"
-            -"mizunaga90"
-            -"werthmuller201"
-            -"key201"
+            to obtain frequency domain EM fields \\
+            options :
+            - "anderson801"
+            - "kong241"
+            - "mizunaga90"
+            - "werthmuller201"
+            - "key201"
 
         td_transform : str
             td_transform == None (default) 
-            --> return Frequency Domain EM Fields
+            return Frequency Domain EM Fields
 
             td_transform == 'FFT', 'DLAG'  
-            --> return Time Domain EM Fields
-                FFT  : Fast Fourier Transform
+            return Time Domain EM Fields\\
+            options :
+            - FFT   Fast Fourier Transform
+            - DLAG  Lagged Convolution
 
-                DLAG : Lagged Convolution
+        ignore_displacement_current : bool \\
+            True  -> wave number k includes only conduction current \\
+            False -> (default) wave number k includes both conduction & displacement current
 
-        ignore_displacement_current : bool
-            True
-                wave number k includes only conduction current 
-            False (default)
-                wave number k includes both conduction & displacement current
-
-        time_diff : bool
-            True
-                return time derivative EM field dE/dt & dH/dt
-            False
-                return raw EM field E & H
+        time_diff : bool \\
+            True  -> return time derivative EM field dE/dt & dH/dt \\
+            False -> return raw EM field E & H
 
         Returns
         -------
-        ans : dictionary
+        ans : dictionary \\
             ans = {
                 'e_x' : numpy.ndarray,
                 'e_y' : numpy.ndarray,
@@ -286,6 +278,8 @@ class Subsurface1D:
                 'h_y' : numpy.ndarray,
                 'h_z' : numpy.ndarray,
             }
+        time : numpy.ndarray, optional \\
+            DLAG time
         """
         if not bool(td_transform):
             self.domain = 'Freq'

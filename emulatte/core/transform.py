@@ -778,7 +778,7 @@ class FourierTransform:
             ans = np.dot(f_imag, sin.T) / time
         return ans
 
-    # DLAG ！コードに無駄が多いので要修正　修正完了まで非推奨とする
+    # TODO DLAG ！コードに無駄が多いので要修正　修正完了まで非推奨とする
 
     @staticmethod
     def dlagf0em(model, nb, emfield):
@@ -792,51 +792,53 @@ class FourierTransform:
         bmax = model.src.freqtime[-1]
         tol = 1e-12
         ntol = 1
-        key = np.zeros((1, ffl))
-        dwork = np.zeros((1, ffl))
+        key = np.zeros(ffl)
+        dwork = np.zeros(ffl)
         dans = np.zeros(nb)
         arg = np.zeros(nb)
 
         if (nb < 1 or bmax <= 0.0e0):
-            print('TimeRangeError: End of time is too early.')
-            return None
+            raise Exception('TimeRangeError: End of time is too early.')
 
-        y = bmax * er ** (float(nb) - 1)
+        y = bmax * er ** (np.fix(nb) - 1)
         if (y <= 0.0e0):
-            print('TimeRangeError: End of time is too early.')
-            return None
+            raise Exception('TimeRangeError: End of time is too early.')
 
-        for i in range (ffl):
-            key[0, i] = 0
         i = ffl + 1
-        y1 = abscis / bmax / e
+        nb1 = np.fix(nb) + 1
+        y1 = abscis / bmax
+        lag = -1
 
-        for ilag in range(nb):
-            istore = nb - ilag
-            y1 *= e
+        for ilag in range(1, nb+1):
+            lag += 1
+            istore = np.int(nb1 - ilag)
+            if lag > 0:
+                y1 *= e
             arg[istore-1] = abscis / y1
             none = 0
-            itol = ntol
+            itol = np.fix(ntol)
             dsum = 0.0e0
             cmax = 0.0e0
+
             y = y1
             m = 20
             i = 426
             y *= e
-            look = i + ilag
+            look = i + lag
             iq = look / (ffl + 1)
             ir = look % (ffl + 1)
             if (ir == 0):
                 ir = 1
             iroll = iq * ffl
-            if (key[0,ir-1] <= iroll):
-                key[0,ir-1] = iroll + ir
+            if (key[ir-1] <= iroll):
+                key[ir-1] = iroll + ir
                 g = y
+
                 hankel_result = model.src.hankel_transform(model, g) 
-                dwork[:,ir-1] = np.imag(hankel_result[emfield]) / g
+                dwork[ir-1] = np.imag(hankel_result[emfield]) / g
                 nofun = np.fix(np.fix(nofun) + 1)
 
-            c = dwork[0,ir-1] * cos[i-1]
+            c = dwork[ir-1] * cos[i-1]
             dsum = dsum + c
             goon = 1
 
@@ -898,22 +900,21 @@ class FourierTransform:
                         m = 0
                 if (goon!=0):
                     look = i + ilag
-                    iq = look / 788
-                    ir = look % 788
+                    iq = look / (ffl+1)
+                    ir = look % (ffl+1)
                     if (ir == 0):
                         ir = 1
                     iroll = iq * 787
-                    if (key[0,ir-1] <= iroll):
-                        key[0,ir-1] = iroll + ir
+                    if (key[ir-1] <= iroll):
+                        key[ir-1] = iroll + ir
                         g = y
                         hankel_result = model.src.hankel_transform(model, g)
-                        dwork[0,ir-1] = np.imag(hankel_result[emfield]) / g
+                        dwork[ir-1] = np.imag(hankel_result[emfield]) / g
                         nofun = np.fix(np.fix(nofun) + 1)
-                    c = dwork[0,ir-1] * cos[i-1]
+                    c = dwork[ir-1] * cos[i-1]
                     dsum = dsum + c
             dans[istore-1] = dsum
             continue
-        dans = dans / arg
         return dans, arg
 
     @staticmethod
@@ -928,28 +929,29 @@ class FourierTransform:
         bmax = model.src.freqtime[-1]
         tol = 1e-12
         ntol = 1
-        key = np.zeros((1, ffl))
-        dwork = np.zeros((1, ffl))
+        key = np.zeros((ffl))
+        dwork = np.zeros((ffl))
         dans = np.zeros(nb)
         arg = np.zeros(nb)
 
         if (nb < 1 or bmax <= 0.0e0):
-            ierr = 1
-            return
+            raise Exception('TimeRangeError: End of time is too early.')
+
         y = bmax * er ** (np.fix(nb) - 1)
         if (y <= 0.0e0):
-            ierr = 1
-            return
+            raise Exception('TimeRangeError: End of time is too early.')
+
         ierr = 0
-        for i in range (ffl):
-            key[0,i] = 0
-
         i = ffl + 1
+        nb1 = np.fix(nb) + 1
+        y1 = abscis / bmax
+        lag = -1
 
-        y1 = abscis / bmax / e
         for ilag in range (1, nb + 1):
-            istore = nb - ilag
-            y1 *= e
+            lag += 1
+            istore = np.int(nb - ilag)
+            if lag > 0:
+                y1 *= e
             arg[istore-1] = abscis / y1
             none = 0
             itol = np.fix(ntol)
@@ -959,20 +961,20 @@ class FourierTransform:
             m = 20
             i = 426
             y = y * e
-            look = i + ilag
+            look = i + lag
             iq = look / (ffl + 1)
             ir = look % (ffl + 1)
             if (ir == 0):
                 ir = 1
             iroll = iq * ffl
-            if (key[0,ir-1] <= iroll):
-                key[0,ir-1] = iroll + ir
+            if (key[ir-1] <= iroll):
+                key[ir-1] = iroll + ir
                 g = y
                 hankel_result = model.src.hankel_transform(model, g)
-                dwork[0,ir-1] = np.imag(hankel_result[emfield])
+                dwork[ir-1] = np.imag(hankel_result[emfield])
                 nofun = np.fix(np.fix(nofun) + 1)
 
-            c = dwork[0,ir-1] * sin[i-1]
+            c = dwork[ir-1] * sin[i-1]
             dsum = dsum + c
             goon = 1
 
@@ -1040,15 +1042,14 @@ class FourierTransform:
                     if ir == 0:
                         ir = 1
                     iroll = iq * 787
-                    if key[0, ir-1] <= iroll:
-                        key[0, ir-1] = iroll + ir
+                    if key[ir-1] <= iroll:
+                        key[ir-1] = iroll + ir
                         g = y
                         hankel_result = model.src.hankel_transform(model, g)
-                        dwork[0, ir-1] = np.imag(hankel_result[emfield])
+                        dwork[ir-1] = np.imag(hankel_result[emfield])
                         nofun = np.fix(np.fix(nofun) + 1)
-                    c = dwork[0, ir-1] * sin[i-1]
+                    c = dwork[ir-1] * sin[i-1]
                     dsum = dsum + c
             dans[istore-1] = dsum
             continue
-        dans = dans / arg
         return dans, arg
