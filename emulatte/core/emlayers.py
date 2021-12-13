@@ -1,30 +1,26 @@
 # Copyright 2021 Waseda Geophysics Laboratory
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # -*- coding: utf-8 -*-
-"""
-Electromagnetic ground model class group
-"""
+
 import numpy as np
 import scipy.constants as const
 from emulatte.utils.function import ndarray_converter
 
+
 class Subsurface1D:
     #== CONSTRUCTOR ======================================#
     def __init__(self, thicks):
-        """
-
-        """
         ### STRUCTURE ###
         thicks = ndarray_converter(thicks, 'thicks')
         # THICKNESS
@@ -34,17 +30,56 @@ class Subsurface1D:
         # NUMBER OF LAYERS
         self.num_layer = len(thicks) + 2
 
-    
     #== CHARACTERIZING LAYERS (ONLY ISOTROPIC MODEL)============================#
+
     def set_properties(self, **props):
+        """
+        Parameters
+        ----------
+        **props : dict, optional
+
+            geophysical properties
+            Each Length must be len(thicks) + 2 \\
+                Resistivity
+                'res' : array_like
+
+                Cole_Cole Resistivity Model Parameters
+                'res_0' : array_like
+                'm' : array_like
+                'tau' : array_like
+                'c' : array_like
+
+                Electric Permittivity
+                'eps' : array-like
+                or Relative Electric Permittivity
+                'eps_r' : array-like
+                default -> eps_r = [1, 1, ... ]
+
+                Magnetic Permeability (Unrecommended)
+                'mu' : array-like
+                or Relative Magnetic Permeability
+                'mu_r' : array-like
+                default -> 'mu_r' = [1, 1, ... ]
+
+            e.g.)      ρ
+                Air   2e14 Ohm-m
+                -----------------
+                L1     100 Ohm-m
+                -----------------
+                L2      50 Ohm-m      =>    res = [2e14, 100, 50, 200, 100]
+                -----------------
+                L3     200 Ohm-m
+                -----------------
+                L4     100 Ohm-m
+        """
         kwds = set(props.keys())
         self.cxres = False
 
         ### ELECTRIC PERMITTIVITY ###
-        if 'epsilon' in kwds:
-            self.epsln = ndarray_converter(props['epsilon'], 'epsilon')
-        elif 'epsilon_r' in kwds:
-            epsilon_r = ndarray_converter(props['epsilon_r'], 'epsilon_r')
+        if 'eps' in kwds:
+            self.epsln = ndarray_converter(props['eps'], 'eps')
+        elif 'eps_r' in kwds:
+            epsilon_r = ndarray_converter(props['eps_r'], 'eps_r')
             self.epsln = epsilon_r * const.epsilon_0
         else:
             self.epsln = np.ones(self.num_layer) * const.epsilon_0
@@ -68,15 +103,32 @@ class Subsurface1D:
             self.m = ndarray_converter(props['m'], 'm')
             self.tau = ndarray_converter(props['tau'], 'tau')
             self.c = ndarray_converter(props['c'], 'c')
+            # for complex resistivity
             self.cxres = True
         else:
             raise Exception('Could not find the input for resistivity values.')
 
-
     #== SET UP ===========================================#
+
     def locate(self, emsrc, sc, rc, **kwargs):
         """
-        Coordinates & Angles
+        Parameters
+        ----------
+        emsrc : emsource instance \\
+            that you can get by
+                emsrc = emulatte.forward.transmitter(name, ...)
+
+        sc : array-like (x, y, z) or [(x1,y1,z1), (x2,y2,z2), ...] \\
+            3D coordinates (x, y, z) of the emsource
+
+            If emsrc is Grounded Wire, input 2 end points
+                sc = [(x1,y1,z),(x2,y2,z)]
+            for else, sc is a single point
+
+
+        rc : array-like (x, y, z) \\
+            A single 3D coordinate (x, y, z) of the receiving point
+
         """
         self.src = emsrc
         sc = ndarray_converter(sc, 'sc')
@@ -93,7 +145,7 @@ class Subsurface1D:
             r = np.sqrt((rx - sx) ** 2 + (ry - sy) ** 2)
 
             # 計算できない送受信座標が入力された場合の処理
-            delta_z = 1e-8      #filterがanderson801の時は1e-4?
+            delta_z = 1e-8  # filterがanderson801の時は1e-4?
 
             if r == 0:
                 r = 1e-8
@@ -111,9 +163,9 @@ class Subsurface1D:
             rlayer = self.in_which_layer(rz)
 
             # return to self
-            self.sx, self.sy ,self.sz = sx, sy, sz
-            self.rx, self.ry ,self.rz = rx, ry, rz
-            self.slayer = slayer 
+            self.sx, self.sy, self.sz = sx, sy, sz
+            self.rx, self.ry, self.rz = rx, ry, rz
+            self.slayer = slayer
             self.rlayer = rlayer
             self.r = r
             self.cos_phi = cos_phi
@@ -142,9 +194,9 @@ class Subsurface1D:
             sy_node = np.linspace(sy[0], sy[1], nsplit + 1)
             sz_node = np.linspace(sz[0], sz[1], nsplit + 1)
 
-            sx_dipole = np.array([(sx_node[i] + sx_node[i+1]) / 2 for i in range(nsplit)])
-            sy_dipole = np.array([(sy_node[i] + sy_node[i+1]) / 2 for i in range(nsplit)])
-            sz_dipole = np.array([(sz_node[i] + sz_node[i+1]) / 2 for i in range(nsplit)])
+            sx_dipole = np.array([(sx_node[i] + sx_node[i + 1]) / 2 for i in range(nsplit)])
+            sy_dipole = np.array([(sy_node[i] + sy_node[i + 1]) / 2 for i in range(nsplit)])
+            sz_dipole = np.array([(sz_node[i] + sz_node[i + 1]) / 2 for i in range(nsplit)])
 
             ds = length / nsplit
 
@@ -154,7 +206,7 @@ class Subsurface1D:
                 return rot_coord
 
             rotsc = np.ones((nsplit, 3))
-            #for i in range(self.num_dipole):
+            # for i in range(self.num_dipole):
             #    rotsc[i, :] = rotate_coordinate(sx_node[i], sy_node[i], sz_node[i], cos_theta, sin_theta)
             for i in range(nsplit):
                 rotsc[i, :] = rotate_coordinate(sx_dipole[i], sy_dipole[i], sz_dipole[i], cos_theta, sin_theta)
@@ -171,21 +223,64 @@ class Subsurface1D:
             slayer = self.in_which_layer(sz[0])
             rlayer = self.in_which_layer(rz)
 
-            self.sx, self.sy , self.sz = sx, sy, sz[0]
-            self.rx, self.ry , self.rz = rx, ry, rz
-            self.xx, self.yy , self.rn = xx, yy, rn
+            self.sx, self.sy, self.sz = sx, sy, sz[0]
+            self.rx, self.ry, self.rz = rx, ry, rz
+            self.xx, self.yy, self.rn = xx, yy, rn
             self.ds = ds
-            self.slayer = slayer 
+            self.slayer = slayer
             self.rlayer = rlayer
             self.cos_theta = cos_theta
             self.sin_theta = sin_theta
 
     #== MAIN EXECUTOR ====================================#
-    def emulate(self, hankel_filter, 
-            ignore_displacement_current = False, 
-            time_diff=False, td_transform=None):
+    def emulate(self, hankel_filter,
+                ignore_displacement_current=False,
+                time_diff=False, td_transform=None):
         """
+        # emulate()
+        Parameters
+        ----------
+        hankel_filter : str \\
+            Hankel transform Degital Filter
+            to obtain frequency domain EM fields \\
+            options :
+            - "anderson801"
+            - "kong241"
+            - "mizunaga90"
+            - "werthmuller201"
+            - "key201"
 
+        td_transform : str \\
+            td_transform == None (default) \\
+            return Frequency Domain EM Fields \\
+
+            td_transform == 'FFT', 'DLAG'  \\
+            return Time Domain EM Fields\\
+            options :
+            - FFT   Fast Fourier Transform
+            - DLAG  Lagged Convolution
+
+        ignore_displacement_current : bool \\
+            True  -> wave number k includes only conduction current \\
+            False -> (default) wave number k includes both conduction & displacement current
+
+        time_diff : bool \\
+            True  -> return time derivative EM field dE/dt & dH/dt \\
+            False -> return raw EM field E & H
+
+        Returns
+        -------
+        ans : dictionary \\
+            ans = {
+                'e_x' : numpy.ndarray,
+                'e_y' : numpy.ndarray,
+                'e_z' : numpy.ndarray,
+                'h_x' : numpy.ndarray,
+                'h_y' : numpy.ndarray,
+                'h_z' : numpy.ndarray,
+            }
+        time : numpy.ndarray, optional \\
+            DLAG time
         """
         if not bool(td_transform):
             self.domain = 'Freq'
@@ -205,9 +300,12 @@ class Subsurface1D:
                 self.sz -= delta_z
 
         ans, freqtime = self.src.get_result(
-                        self, time_diff=time_diff, td_transform=td_transform)
-        
-        return ans, freqtime
+            self, time_diff=time_diff, td_transform=td_transform)
+
+        if td_transform == 'DLAG':
+            return ans, freqtime
+        else:
+            return ans
 
     #== COMPUTE COEFFICIENTS (called by kernel function) ===============================================#
     def compute_coefficients(self, omega):
@@ -224,7 +322,7 @@ class Subsurface1D:
             im = 1 - (1j * omega * self.tau) ** self.c
             res = self.res_0 * (1 - self.m * (1 - 1 / im))
             self.sigma = 1 / res
-        
+
         # インピーダンス＆アドミタンス
         ztilde[:] = 1j * omega * self.mu[:]
 
@@ -233,12 +331,12 @@ class Subsurface1D:
             ytilde[:] = self.sigma[:]
             ytilde[0] = 1e-13
             k[:] = (- 1.j * omega * self.mu[:] * self.sigma[:]) ** 0.5
-            k[0] = 0 # !!!
+            k[0] = 0  # !!!
         else:
             ytilde[:] = self.sigma[:] + 1.j * omega * self.epsln[:]
-            k[:] = (omega ** 2.0 * self.mu[:] * self.epsln[:] \
+            k[:] = (omega ** 2.0 * self.mu[:] * self.epsln[:]
                     - 1.j * omega * self.mu[:] * self.sigma[:]) ** 0.5
-        
+
         # u = (kx^2 + ky^2 - km^2)^0.5
         for i in range(self.num_layer):
             u[i] = (self.lambda_ ** 2 - k[i] ** 2) ** 0.5
@@ -251,19 +349,19 @@ class Subsurface1D:
             Y[i] = u[i] / ztilde[i]
             Z[i] = u[i] / ytilde[i]
 
-        #return to self
+        # return to self
         self.ztilde = ztilde
         self.ytilde = ytilde
         self.k = k
         self.u = u
 
-        #TE/TM mode 境界係数
+        # TE/TM mode 境界係数
         r_te = np.ones((self.num_layer, self.filter_length), dtype=complex)
         r_tm = np.ones((self.num_layer, self.filter_length), dtype=complex)
         R_te = np.ones((self.num_layer, self.filter_length), dtype=complex)
         R_tm = np.ones((self.num_layer, self.filter_length), dtype=complex)
 
-        #送受信層index+1　for コード短縮
+        # 送受信層index+1　for コード短縮
         si = self.slayer
         ri = self.rlayer
 
@@ -296,7 +394,7 @@ class Subsurface1D:
         ### UP ADMITTANCE & IMPEDANCE ###
         Yhat = np.ones((self.num_layer, self.filter_length), dtype=complex)
         Zhat = np.ones((self.num_layer, self.filter_length), dtype=complex)
-        
+
         Yhat[0] = Y[0]
         Zhat[0] = Z[0]
 
@@ -306,7 +404,7 @@ class Subsurface1D:
         for ii in range(2, si):
             numerator_Y = Yhat[ii - 2] + Y[ii - 1] * tanhuh[ii - 1]
             denominator_Y = Y[ii - 1] + Yhat[ii - 2] * tanhuh[ii - 1]
-            Yhat[ii - 1] = Y[ii - 1] * numerator_Y / denominator_Y  
+            Yhat[ii - 1] = Y[ii - 1] * numerator_Y / denominator_Y
             # (2)Yhat{2,3,\,si-2,si-1}
 
             numerator_Z = Zhat[ii - 2] + Z[ii - 1] * tanhuh[ii - 1]
@@ -315,7 +413,7 @@ class Subsurface1D:
 
             R_te[ii - 1] = (Y[ii - 1] - Yhat[ii - 2]) / (Y[ii - 1] + Yhat[ii - 2])
             R_tm[ii - 1] = (Z[ii - 1] - Zhat[ii - 2]) / (Z[ii - 1] + Zhat[ii - 2])
-        if si != 1 :
+        if si != 1:
             R_te[si - 1] = (Y[si - 1] - Yhat[si - 2]) / (Y[si - 1] + Yhat[si - 2])
             R_tm[si - 1] = (Z[si - 1] - Zhat[si - 2]) / (Z[si - 1] + Zhat[si - 2])
 
@@ -329,46 +427,46 @@ class Subsurface1D:
             U_te[si - 1] = 0
             U_tm[si - 1] = 0
             D_te[si - 1] = self.src.kernel_te_down_sign * r_te[si - 1] \
-                            * np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
+                * np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
             D_tm[si - 1] = self.src.kernel_tm_down_sign * r_tm[si - 1] \
-                            * np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
+                * np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
         elif si == self.num_layer:
             U_te[si - 1] = self.src.kernel_te_up_sign * R_te[si - 1] \
-                            * np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
+                * np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
             U_tm[si - 1] = self.src.kernel_tm_up_sign * R_tm[si - 1] \
-                            * np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
+                * np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
             D_te[si - 1] = 0
             D_tm[si - 1] = 0
         else:
             exp_term1 = np.exp(-2 * u[si - 1]
-                                * (self.depth[si - 1] - self.depth[si - 2]))
-            exp_term2u = np.exp( u[si - 1] * (self.depth[si - 2] - 2 * self.depth[si - 1] + self.sz))
+                               * (self.depth[si - 1] - self.depth[si - 2]))
+            exp_term2u = np.exp(u[si - 1] * (self.depth[si - 2] - 2 * self.depth[si - 1] + self.sz))
             exp_term2d = np.exp(-u[si - 1] * (self.depth[si - 1] - 2 * self.depth[si - 2] + self.sz))
-            exp_term3u = np.exp( u[si - 1] * (self.depth[si - 2] - self.sz))
+            exp_term3u = np.exp(u[si - 1] * (self.depth[si - 2] - self.sz))
             exp_term3d = np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
 
             U_te[si - 1] = \
                 1 / (1 - R_te[si - 1] * r_te[si - 1] * exp_term1) \
                 * R_te[si - 1] \
-                * (self.src.kernel_te_down_sign * r_te[si - 1] * exp_term2u \
+                * (self.src.kernel_te_down_sign * r_te[si - 1] * exp_term2u
                     + self.src.kernel_te_up_sign * exp_term3u)
 
             U_tm[si - 1] = \
                 1 / (1 - R_tm[si - 1] * r_tm[si - 1] * exp_term1) \
                 * R_tm[si - 1] \
-                * (self.src.kernel_tm_down_sign  * r_tm[si - 1] * exp_term2u \
+                * (self.src.kernel_tm_down_sign * r_tm[si - 1] * exp_term2u
                     + self.src.kernel_tm_up_sign * exp_term3u)
 
             D_te[si - 1] = \
                 1 / (1 - R_te[si - 1] * r_te[si - 1] * exp_term1) \
                 * r_te[si - 1] \
-                * (self.src.kernel_te_up_sign * R_te[si - 1] * exp_term2d \
+                * (self.src.kernel_te_up_sign * R_te[si - 1] * exp_term2d
                     + self.src.kernel_te_down_sign * exp_term3d)
 
             D_tm[si - 1] = \
                 1 / (1 - R_tm[si - 1] * r_tm[si - 1] * exp_term1) \
                 * r_tm[si - 1] \
-                * (self.src.kernel_tm_up_sign * R_tm[si - 1] * exp_term2d \
+                * (self.src.kernel_tm_up_sign * R_tm[si - 1] * exp_term2d
                     + self.src.kernel_tm_down_sign * exp_term3d)
 
         # for the layers above the slayer
@@ -387,17 +485,17 @@ class Subsurface1D:
             elif si != 1 and si != self.num_layer:
                 exp_term = np.exp(-u[si - 1] * (self.sz - self.depth[si - 2]))
                 exp_termii = np.exp(-u[si - 1] * (self.depth[si - 1] - self.depth[si - 2]))
-                
+
                 D_te[si - 2] = \
                     (Y[si - 2] * (1 + R_te[si - 1]) + Y[si - 1] * (1 - R_te[si - 1])) \
                     / (2 * Y[si - 2]) * (D_te[si - 1] * exp_termii + self.src.kernel_te_up_sign * exp_term)
 
                 D_tm[si - 2] = \
                     (Z[si - 2] * (1 + R_tm[si - 1]) + Z[si - 1] * (1 - R_tm[si - 1])) \
-                    / (2 * Z[si - 2]) * (D_tm[si - 1]  * exp_termii + self.src.kernel_tm_up_sign * exp_term)
+                    / (2 * Z[si - 2]) * (D_tm[si - 1] * exp_termii + self.src.kernel_tm_up_sign * exp_term)
 
             for jj in range(si - 2, 0, -1):
-                exp_termjj = np.exp(-u[jj] \
+                exp_termjj = np.exp(-u[jj]
                                     * (self.depth[jj] - self.depth[jj - 1]))
                 D_te[jj - 1] = \
                     (Y[jj - 1] * (1 + R_te[jj]) + Y[jj] * (1 - R_te[jj])) \
@@ -417,48 +515,48 @@ class Subsurface1D:
         if ri > si:
             if si == 1:
                 exp_term = np.exp(-u[si - 1] * (self.depth[si - 1] - self.sz))
-                U_te[si] = (Y[si] * (1 + r_te[si - 1]) \
-                                + Y[si - 1] * (1 - r_te[si - 1])) \
-                            / (2 * Y[si]) \
-                            * self.src.kernel_te_down_sign * exp_term
-                U_tm[si] = (Z[si] * (1 + r_tm[si - 1]) \
-                                + Z[si - 1] * (1 - r_tm[si - 1])) \
-                            / (2 * Z[si]) \
-                            * self.src.kernel_tm_down_sign * exp_term
+                U_te[si] = (Y[si] * (1 + r_te[si - 1])
+                            + Y[si - 1] * (1 - r_te[si - 1])) \
+                    / (2 * Y[si]) \
+                    * self.src.kernel_te_down_sign * exp_term
+                U_tm[si] = (Z[si] * (1 + r_tm[si - 1])
+                            + Z[si - 1] * (1 - r_tm[si - 1])) \
+                    / (2 * Z[si]) \
+                    * self.src.kernel_tm_down_sign * exp_term
 
             elif si != 1 and si != self.num_layer:
-                exp_termi = np.exp(-u[si - 1] \
-                                * (self.depth[si - 1] - self.depth[si - 2]))
-                exp_termii = np.exp(-u[si - 1] 
-                                * (self.depth[si - 1] - self.sz))
-                U_te[si] = (Y[si] * (1 + r_te[si - 1]) \
-                                    + Y[si - 1] * (1 - r_te[si - 1])) \
-                                / (2 * Y[si]) \
-                                * (U_te[si - 1] * exp_termi \
-                                    + self.src.kernel_te_down_sign * exp_termii)
-                U_tm[si] = (Z[si] * (1 + r_tm[si - 1]) + Z[si - 1] \
-                                    * (1 - r_tm[si - 1])) \
-                                / (2 * Z[si]) \
-                                * (U_tm[si - 1] * exp_termi \
-                                    + self.src.kernel_tm_down_sign * exp_termii)
+                exp_termi = np.exp(-u[si - 1]
+                                   * (self.depth[si - 1] - self.depth[si - 2]))
+                exp_termii = np.exp(-u[si - 1]
+                                    * (self.depth[si - 1] - self.sz))
+                U_te[si] = (Y[si] * (1 + r_te[si - 1])
+                            + Y[si - 1] * (1 - r_te[si - 1])) \
+                    / (2 * Y[si]) \
+                    * (U_te[si - 1] * exp_termi
+                       + self.src.kernel_te_down_sign * exp_termii)
+                U_tm[si] = (Z[si] * (1 + r_tm[si - 1]) + Z[si - 1]
+                            * (1 - r_tm[si - 1])) \
+                    / (2 * Z[si]) \
+                    * (U_tm[si - 1] * exp_termi
+                       + self.src.kernel_tm_down_sign * exp_termii)
 
             for jj in range(si + 2, self.num_layer + 1):
-                exp_term = np.exp(-u[jj - 2] \
-                                * (self.depth[jj - 2] - self.depth[jj - 3]))
-                U_te[jj - 1] = (Y[jj - 1] * (1 + r_te[jj - 2]) \
-                                    + Y[jj - 2] * (1 - r_te[jj - 2])) \
-                                / (2 * Y[jj - 1]) * U_te[jj - 2] * exp_term
-                U_tm[jj - 1] = (Z[jj - 1] * (1 + r_tm[jj - 2]) \
-                                    + Z[jj - 2] * (1 - r_tm[jj - 2])) \
-                                / (2 * Z[jj - 1]) * U_tm[jj - 2] * exp_term
-                                
+                exp_term = np.exp(-u[jj - 2]
+                                  * (self.depth[jj - 2] - self.depth[jj - 3]))
+                U_te[jj - 1] = (Y[jj - 1] * (1 + r_te[jj - 2])
+                                + Y[jj - 2] * (1 - r_te[jj - 2])) \
+                    / (2 * Y[jj - 1]) * U_te[jj - 2] * exp_term
+                U_tm[jj - 1] = (Z[jj - 1] * (1 + r_tm[jj - 2])
+                                + Z[jj - 2] * (1 - r_tm[jj - 2])) \
+                    / (2 * Z[jj - 1]) * U_tm[jj - 2] * exp_term
+
             for jj in range(si + 1, self.num_layer):
-                D_te[jj - 1] = U_te[jj - 1] * np.exp(-u[jj - 1] \
-                                * (self.depth[jj - 1] - self.depth[jj - 2])) \
-                                * r_te[jj - 1]
-                D_tm[jj - 1] = U_tm[jj - 1] * np.exp(-u[jj - 1] \
-                                * (self.depth[jj - 1] - self.depth[jj - 2])) \
-                                * r_tm[jj - 1]
+                D_te[jj - 1] = U_te[jj - 1] * np.exp(-u[jj - 1]
+                                                     * (self.depth[jj - 1] - self.depth[jj - 2])) \
+                    * r_te[jj - 1]
+                D_tm[jj - 1] = U_tm[jj - 1] * np.exp(-u[jj - 1]
+                                                     * (self.depth[jj - 1] - self.depth[jj - 2])) \
+                    * r_tm[jj - 1]
             D_te[self.num_layer - 1] = 0
             D_tm[self.num_layer - 1] = 0
 
@@ -490,8 +588,8 @@ class Subsurface1D:
 
         """
         layer_id = 1
-        for i in range(self.num_layer-1, 0, -1):
-            if z > self.depth[i-1]:
+        for i in range(self.num_layer - 1, 0, -1):
+            if z > self.depth[i - 1]:
                 layer_id = i + 1
                 break
             else:

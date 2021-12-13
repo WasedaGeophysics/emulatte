@@ -1,39 +1,14 @@
-# Emulatte 1.0.0 Pre-Release Note
-## Emulatte : EM-exploratory simulation & analysis software
-<p> Emulatte is the modern software for geophysical electromagnetic exploration. Emulatte supports homogeneous and horizontal multi-layered structures as envisioned underground structural models.
+# Emulatte 0.1.x Pre-Release Note (Only for students in our lab)
+## Emulatte
+<p> Emulatte is the modern software for geophysical electromagnetic (EM) exploration. Emulatte supports homogeneous and horizontal multi-layered structures as envisioned underground structural models.
 </p>
 
-- Documentation
-- Contact
-- Bag Report
-
 ## Installation
+Download ZIP file and expand to your workspace directory.
 - Requirements : numpy and scipy 
 
- In your terminal, command
-<code>
-
-    ~ % pip install emulatte
-
-</code>
-
 ## Usage
-
-<code>
-
-    import emulatte.forward as fwd
-
-    model = fwd.model(thicks)
-    vmd = fwd.transceiver('VMD', freqtime, dipole_moment=1)
-    model.add_resistivity(res)
-
-    ...
-
-    model.locate(vmd, tc, rc)
-    ans, _ = model.emulate()
-
-</code>
-
+- see Notion pages
 
 <p>Geophysics Lab. @ Waseda University</p>
 <p>早稲田大学 物理探査工学研究室</p>
