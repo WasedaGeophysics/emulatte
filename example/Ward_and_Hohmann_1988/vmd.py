@@ -61,30 +61,29 @@ def calc_vmd_time_err():
     thick = []
     res = [2e14, 100]  # 空気層の比抵抗を無限大と近似
     epermH = [0, 1]
-    inp = {'src': src, 'rec': rec, 'depth': depth, 'res': res,
-           'freqtime': time, 'verb': 1, 'xdirect': True, 'epermH': epermH}
-    # 解析解
-    vmd = VMD()
-    r = np.sqrt(rec[0]**2 + rec[1]**2)  # 送受信器間距離
-    thz_ana = vmd.td_hz(res[1], r, time)
-    thzdt_ana = vmd.td_hz(rec[1], r, time)
-
-    # empymod
-    thz_emp = empymod.loop(signal=-1, **inp)  # スイッチオン応答(微分なし)
-    thzdt_emp = empymod.loop(signal=0, **inp)  # インパルス応答 (微分あり)
+    inp = {'src': src, 'rec': rec, 'depth': depth, 'res': res, 'verb': 1, 'xdirect': True, 'epermH': epermH}
 
     # emulatte
-    # VMD
     emsrc_name = 'VMD'
     props = {'res': res}
     model = fwd.model(thick)
     model.set_properties(**props)
     emsrc = fwd.transmitter(emsrc_name, time, moment=1)
     model.locate(emsrc, src[:3], rec[:3])
-    EMF = model.emulate(hankel_filter='werthmuller201', td_transform='FFT', time_diff=False)
+    EMF, time_hz = model.emulate(hankel_filter='werthmuller201', td_transform='DLAG', time_diff=False, ignore_displacement_current=True)
     thz_emu = EMF['h_z'].real
-    EMF_dt = model.emulate(hankel_filter='werthmuller201', td_transform='FFT', time_diff=True)
+    EMF_dt, time_dt = model.emulate(hankel_filter='werthmuller201', td_transform='DLAG', time_diff=True, ignore_displacement_current=True)
     thzdt_emu = EMF_dt['h_z'].real
+
+    # 解析解
+    vmd = VMD()
+    r = np.sqrt(rec[0]**2 + rec[1]**2)  # 送受信器間距離
+    thz_ana = vmd.td_hz(res[1], r, time_hz)
+    thzdt_ana = vmd.td_hz(rec[1], r, time_dt)
+
+    # empymod
+    thz_emp = empymod.loop(signal=-1, freqtime=time_hz, **inp)  # スイッチオン応答(微分なし)
+    thzdt_emp = empymod.loop(signal=0, freqtime=time_dt, **inp)  # インパルス応答 (微分あり)
 
     # 相対誤差
     # 微分なし

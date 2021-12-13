@@ -51,9 +51,9 @@ EMF_dt = model.emulate(hankel_filter='werthmuller201', td_transform='FFT', time_
 thzdt_emu = EMF_dt['h_z'].real
 
 # DLAG (出力2つ)
-EMF_dlag, time_dlag = model.emulate(hankel_filter='key201', td_transform='DLAG', time_diff=False, ignore_displacement_current=False)
+EMF_dlag, time_dlag = model.emulate(hankel_filter='key201', td_transform='DLAG', time_diff=False, ignore_displacement_current=True)
 thz_dlag_emu = EMF_dlag['h_z'].real
-EMF_dlag_dt, time_dlag_dt = model.emulate(hankel_filter='key201', td_transform='DLAG', time_diff=True, ignore_displacement_current=False)
+EMF_dlag_dt, time_dlag_dt = model.emulate(hankel_filter='key201', td_transform='DLAG', time_diff=True, ignore_displacement_current=True)
 thzdt_dlag_emu = EMF_dlag_dt['h_z'].real
 
 # empymod (DLAG)
