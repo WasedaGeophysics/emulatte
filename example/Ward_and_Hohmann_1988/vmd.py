@@ -6,11 +6,6 @@ import empymod
 import emulatte.forward as fwd
 
 
-def calc_rel_err(ans_num, ans_ana):
-    rel_err = np.abs((ans_num - ans_ana) / ans_ana) * 100
-    return rel_err
-
-
 # 送受信装置
 src = [0, 0, 0, 0, 90]
 rec = [100, 0, 0, 0, 90]
@@ -35,29 +30,20 @@ vmd = VMD(res[1], r)
 
 
 def calc_vmd_freq(freq, filter_name='key201'):
-    # freq = np.logspace(-1, 5, 301)
     # emulatte
     emsrc = fwd.transmitter(emsrc_name, freq, moment=1)
     model.locate(emsrc, src[:3], rec[:3])
     fEMF = model.emulate(hankel_filter=filter_name)
     fhz_emu = fEMF['h_z']
     # empymod
-    fhz_emp = empymod.loop(**inp, freqtime=freq)
+    fhz_emp = empymod.loop(freqtime=freq, **inp)
     # 解析解
     fhz_ana = vmd.fd_hz(freq)
 
     return [fhz_emu, fhz_emp, fhz_ana], freq
 
-    # # 相対誤差
-    # rel_err_emp_re = calc_rel_err(fhz_ana.real, fhz_emp.real)
-    # rel_err_emp_im = calc_rel_err(fhz_ana.imag, fhz_emp.imag)
-    # rel_err_emu_re = calc_rel_err(fhz_ana.real, fhz_emu.real)
-    # rel_err_emu_im = calc_rel_err(fhz_ana.imag, fhz_emu.imag)
-    # return rel_err_emp_re, rel_err_emp_im, rel_err_emu_re, rel_err_emu_im
-
 
 def calc_vmd_time(time, filter_name='key201'):
-    # time = np.logspace(-8, 0, 301)
     # emulatte
     emsrc = fwd.transmitter(emsrc_name, time, moment=1)
     model.locate(emsrc, src[:3], rec[:3])
@@ -74,13 +60,3 @@ def calc_vmd_time(time, filter_name='key201'):
     thzdt_ana = vmd.td_dhzdt(time_thzdt)
 
     return [thz_emu, thz_emp, thz_ana], time_thz, [thzdt_emu, thzdt_emp, thzdt_ana], time_thzdt
-
-    # # 相対誤差
-    # # 微分なし
-    # rel_err_emp_thz = calc_rel_err(thz_ana, thz_emp)
-    # rel_err_emu_thz = calc_rel_err(thz_ana, thz_emu)
-    # # 微分あり
-    # rel_err_emp_thzdt = calc_rel_err(thz_ana, thzdt_emp)
-    # rel_err_emu_thzdt = calc_rel_err(thzdt_ana, thzdt_emu)
-
-    # return rel_err_emp_thz, rel_err_emu_thz, rel_err_emp_thzdt, rel_err_emu_thzdt
