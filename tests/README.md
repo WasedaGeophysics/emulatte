@@ -14,4 +14,12 @@
 
 ### 2.1.1. 周波数領域
 
+2021-12-14：skosaka
+
 ### 2.1.2. 時間領域
+
+2021-12-14：skosaka
+
+-   DLAGの修正
+-   ignore_displacement_current=True
+-   hankel_filterの違いによるpytest合格可否
