@@ -322,6 +322,7 @@ class Subsurface1D:
             im = 1 - (1j * omega * self.tau) ** self.c
             res = self.res_0 * (1 - self.m * (1 - 1 / im))
             self.sigma = 1 / res
+            self.epsln = self.epsln - 1j * self.sigma / omega
 
         # インピーダンス＆アドミタンス
         ztilde[:] = 1j * omega * self.mu[:]
