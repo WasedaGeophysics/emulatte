@@ -104,4 +104,5 @@ class CL:
 
         dhzdt = - current / (mu_0 * self.res**(-1) * self.radius**3)
         dhzdt *= (3 * erf(theta_r) - 2 / np.sqrt(np.pi) * theta_r * (3 + 2 * theta_r**2) * np.exp(-theta_r**2))
-        return dhzdt
+        # ?：なぜか符号が逆転してしまう
+        return -dhzdt
