@@ -17,7 +17,7 @@
 カスタマイズされた実装
 """
 import numpy as np
-from emulatte.core import emgmodel, transceiver
+from ..core import emgmodel, transceiver
 
 class GroundedWire(emgmodel.Subsurface1D):
     None

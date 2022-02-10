@@ -15,7 +15,7 @@
 
 import numpy as np
 import scipy.constants as const
-from emulatte.utils.function import ndarray_converter
+from ..utils.function import ndarray_converter
 
 
 class Subsurface1D:

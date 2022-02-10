@@ -15,7 +15,7 @@
 
 import numpy as np
 from scipy.special import erf, erfc, jn
-from emulatte.utils.function import kroneckers_delta
+from ..utils.function import kroneckers_delta
 
 def compute_kernel_vmd(model, omega):
     """

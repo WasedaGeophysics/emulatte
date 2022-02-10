@@ -1,5 +1,5 @@
 import numpy as np
-from emulatte.waveform_files import walktem_hm, walktem_lm
+from ..waveform_files import walktem_hm, walktem_lm
 
 
 def load_waveform(waveform_name, moment_type):

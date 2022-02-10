@@ -15,8 +15,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from scipy import interpolate
-from emulatte.core import transform
-from emulatte.utils.function import ndarray_converter
+from ..core import transform
+from ..utils.function import ndarray_converter
 
 
 class Core:

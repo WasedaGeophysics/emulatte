@@ -21,7 +21,7 @@ Class List
 * FourierTransform
 """
 import numpy as np
-from emulatte.core import kernels, filters
+from ..core import kernels, filters
 
 
 class HankelTransform:
