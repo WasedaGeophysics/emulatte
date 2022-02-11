@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from emulatte.core import emlayers
-from emulatte.core.emsource import *
+from .core import emlayers
+from .core.emsource import *
 
 def model(thicks):
     """

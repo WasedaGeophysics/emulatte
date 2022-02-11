@@ -1,3 +1,4 @@
+from msilib.schema import Component
 import numpy as np
 import sys
 
@@ -18,3 +19,21 @@ def array(array_like):
     else:
         raise Exception('invalid parameter type')
     return array
+
+def check_tx_type(ontime):
+    if ontime is None:
+        tx_type = "f"
+    else:
+        ontime = array(ontime)
+        if len(ontime) > 1:
+            tx_type = "a"
+        elif len(ontime) == 1:
+            if ontime[0] > 0:
+                tx_type = "step-on"
+            elif ontime[0] == 0:
+                tx_type = "impulse"
+            else:
+                tx_type = "step-off"
+        else:
+            raise Exception(ValueError)
+    return tx_type

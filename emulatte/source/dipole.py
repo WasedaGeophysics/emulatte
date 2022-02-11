@@ -13,3 +13,27 @@
 # limitations under the License.
 
 # -*- coding: utf-8 -*-
+
+from ..core import filter
+from ..utils.converter import array, check_waveform
+
+
+class VMD:
+    def __init__(self, moment, ontime = None):
+        self.moment = moment
+        self.num_dipole = 1
+        self.kernel_te_up_sign = 1
+        self.kernel_te_down_sign = 1
+        self.kernel_tm_up_sign = 0
+        self.kernel_tm_down_sign = 0
+        self.tx_type = check_waveform(ontime)
+
+    def hankel_transform_e(self, model, direction, ):
+        y_base, wt0, wt1 = filter.load_hankel_filter(model.hankel_filter)
+
+    def hankel_transform_h(self, model, direction, ):
+        y_base, wt0, wt1 = filter.load_hankel_filter(model.hankel_filter)
+
+    def hankel_ex(self):
+
+
