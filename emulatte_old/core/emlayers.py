@@ -307,7 +307,7 @@ class Subsurface1D:
         else:
             return ans
 
-    #== COMPUTE COEFFICIENTS (called by kernel function) ===============================================#
+    #== COMPUTE COEFFICIENTS (called by kernel function) =========================#
     def compute_coefficients(self, omega):
         ztilde = np.ones(self.num_layer, dtype=complex)
         ytilde = np.ones(self.num_layer, dtype=complex)

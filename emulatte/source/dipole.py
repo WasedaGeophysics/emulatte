@@ -14,8 +14,11 @@
 
 # -*- coding: utf-8 -*-
 
-from ..core import filter
+from tkinter import Y
+import numpy as np
+from ..function import filter
 from ..utils.converter import array, check_waveform
+from .kernel.dipole_kernel import *
 
 
 class VMD:
@@ -26,14 +29,62 @@ class VMD:
         self.kernel_te_down_sign = 1
         self.kernel_tm_up_sign = 0
         self.kernel_tm_down_sign = 0
-        self.tx_type = check_waveform(ontime)
+        self.signal = check_waveform(ontime)
+        self.mode = "TE"
 
-    def hankel_transform_e(self, model, direction, ):
-        y_base, wt0, wt1 = filter.load_hankel_filter(model.hankel_filter)
+    def _hankel_transform_e(self, model, direction, omega, y_base, wt0, wt1):
+        lambda_ = model._compute_kernel_integrants(omega, y_base, model.r)
+        z = model.admz[model.ri]
+        r = model.r
+        ans = []
+        if "x" in direction:
+            factor = - z / (4 * np.pi * r) * model.sin_phi
+            kernel = call_kernel_vmd_e(model, lambda_)
+            e_x = self.moment * factor * (kernel @ wt1)
+            ans.append(e_x)
+        if "y" in direction:
+            factor = - z / (4 * np.pi * r) * model.cos_phi
+            kernel = call_kernel_vmd_e(model, lambda_)
+            e_y = self.moment * factor * (kernel @ wt1)
+            ans.append(e_y)
+        if "z" in direction:
+            e_z = np.zeros(model.K)
+            ans.append(e_z)
+        else:
+            raise Exception
+        ans = np.array(ans)
+        if model.time_diff:
+            ans = ans * omega * 1j
+        return ans
+        
+    def _hankel_transform_h(self, model, direction, omega, y_base, wt0, wt1):
+        lambda_ = model._compute_kernel_integrants(omega, y_base, model.r)
+        zr = model.admz[model.ri]
+        zs = model.admz[model.si]
+        r = model.r
+        ans = []
+        if "x" in direction:
+            factor = 1 / (4 * np.pi * r) * model.cos_phi
+            kernel = call_kernel_vmd_h_r(model)
+            h_x = self.moment * factor * (kernel @ wt1)
+            ans.append(h_x)
+        if "y" in direction:
+            factor = 1 / (4 * np.pi * r) * model.sin_phi
+            kernel = call_kernel_vmd_h_r(model)
+            h_y = self.moment * factor * (kernel @ wt1)
+            ans.append(h_y)
+        if "z" in direction:
+            factor = 1 / (4 * np.pi * r) * zs /zr
+            kernel = call_kernel_vmd_h_z(model)
+            h_z = self.moment * factor * (kernel @ wt0)
+            ans.append(h_z)
+        else:
+            raise Exception
+        ans = np.array(ans)
+        if model.time_diff:
+            ans = ans * omega * 1j
+        return ans
 
-    def hankel_transform_h(self, model, direction, ):
-        y_base, wt0, wt1 = filter.load_hankel_filter(model.hankel_filter)
-
-    def hankel_ex(self):
-
-
+class HED:
+    def __init__(self, current, ds, ontime = None):
+        pass
