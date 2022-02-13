@@ -10,7 +10,7 @@ def kroneckers_delta(ii, jj):
 
 def array(array_like):
     array_types = [list, tuple, np.ndarray]
-    if type(array_like) in types:
+    if type(array_like) in array_types:
         array = np.array(array_like, dtype=np.float64)
     elif type(array_like) in [int, float]:
         array = np.array([array_like], dtype=np.float64)
