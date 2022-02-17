@@ -5,6 +5,8 @@
 *.DS_Store
 *.png
 
+emulatte_old/
+
 # Python Template
 # Byte-compiled / optimized / DLL files
 __pycache__

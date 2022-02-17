@@ -1,12 +1,4 @@
-from msilib.schema import Component
 import numpy as np
-import sys
-
-def kroneckers_delta(ii, jj):
-    if ii == jj:
-        return 1
-    else:
-        return 0
 
 def array(array_like):
     array_types = [list, tuple, np.ndarray]
@@ -20,7 +12,7 @@ def array(array_like):
         raise Exception('invalid parameter type')
     return array
 
-def check_tx_type(ontime):
+def check_waveform(ontime):
     if ontime is None:
         tx_type = "f"
     else:

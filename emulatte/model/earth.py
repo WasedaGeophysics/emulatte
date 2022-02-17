@@ -17,7 +17,7 @@
 import numpy as np
 import scipy.constants as const
 
-from ..utils.converter import array, mode
+from ..utils.converter import array
 from ..function.filter import load_hankel_filter, load_fft_filter
 from .element import *
 
@@ -29,14 +29,14 @@ class EM1D:
         r"""
         Parameters
         ----------
-        thicks : array_like
+        thick : array_like
             layer thickness (m), except for the first (on the ground) & last layers
         """
         thickness = array(thickness)
         # LAYERS BOUNDARY DEPTH
         self.depth = np.array([0, *np.cumsum(thickness)])
         # THICKNESS
-        self.thicks = np.array([np.inf, *thickness, np.inf])
+        self.thick = np.array([np.inf, *thickness, np.inf])
         # NUMBER OF LAYERS
         self.N = len(thickness) + 1
         # LENGTH OF LAYER PROPERTY ARRAYS
@@ -101,7 +101,7 @@ class EM1D:
         self._check_input()
         direction = [char for char in direction]
         self.rc = array(loc)
-        self.time_diff
+        self.time_diff = time_diff
         self._geometric_basics()
         signal = self.source.signal
         if signal == "f":
@@ -159,15 +159,15 @@ class EM1D:
     def _geometric_basics(self):
         def in_which_layer(z, depth):
             layer_index = self.N
-            for i in range(self.L):
-                if z < depth[i]:
+            for i in range(self.L-1):
+                if z <= depth[i]:
                     layer_index = i
                     break
                 else:
                     continue
             return layer_index
 
-        point_source = ["VMD", "HED", "Loop"]
+        point_source = ["VMD", "HMD", "HED", "Loop"]
         if self.source_type in point_source:
             sx, sy, sz = self.sc
             rx, ry, rz = self.rc
@@ -179,9 +179,21 @@ class EM1D:
             cos_phi = (rx - sx) / r
             sin_phi = (ry - sy) / r
 
+            # 特異点の回避
+            if self.hankel_filter == "anderson801":
+                delta_z = 1e-4
+            else:
+                delta_z = 1e-8
+            # TODO WHY?
+            if sz in self.depth:
+                sz = sz - delta_z
+            # to avoid singularity of source potential
+            if sz == rz:
+                sz = sz - delta_z
+
             # 送受信点が含まれる層の特定
-            si = in_which_layer(sz)
-            ri = in_which_layer(rz)
+            si = in_which_layer(sz, self.depth)
+            ri = in_which_layer(rz, self.depth)
 
             # return to self
             self.sx, self.sy, self.sz = sx, sy, sz
@@ -197,7 +209,7 @@ class EM1D:
             
     def _compute_admittivity(self, omega):
         self.admz = 1j * omega.reshape(-1,1) * self.mu.reshape(1,-1)
-        self.admy = np.ones((self.K, self.L)) * self.sigma.reshape(1,-1)
+        self.admy = (np.ones((self.K, self.L)) * self.sigma.reshape(1,-1)).astype(complex)
         self.admy[:, 0] = 1j * omega * self.epsilon[0]
         return None
 
@@ -214,22 +226,25 @@ class EM1D:
         self.M = len(lambda_)
         self._compute_admittivity(omega)
         self.k = np.sqrt(-self.admy*self.admz)
-        lambda_v = np.zeros((self.K, self.L, self.M))
+        # calculate 3d tensor u = lambda**2 - k**2
+        lambda_v = np.zeros((self.K, self.L, self.M), dtype=complex)
         lambda_v[:,:] = lambda_
-        k_v = np.zeros((self.K, self.L, self.M))
-        for i in range(self.K):
-            for j in range(self.L):
-                k_v[i,j] = self.k[i,j] * np.ones(self.M)
+        k_v = np.zeros((self.M, self.L, self.K), dtype=complex)
+        k_v[:] = self.k.T
+        k_v = k_v.transpose((2,1,0))
         self.u = np.sqrt(lambda_v ** 2 - k_v ** 2)
-
-        if self.source.mode == 'TE':
-            damp_up, damp_down, exp_up, exp_down = te_mode_damping(self)
-        elif self.source.mode == 'TM':
-            damp_up, damp_down, exp_up, exp_down = tm_mode_damping(self)
-        else: # self.source.mode == 'BOTH'
-            damp_up, damp_down, exp_up, exp_down = tetm_mode_damping(self)
-        self.damp_up, self.damp_down = damp_up, damp_down
-        self.exp_up, self.exp_down = exp_up, exp_down
+        # compute damping coefficients
+        # TODO separate TE, TM, and both
+        u_te, d_te, u_tm, d_tm, e_up, e_down = tetm_mode_damping(self)
+        self.u_te, self.d_te = u_te, d_te
+        self.u_tm, self.d_tm = u_tm, d_tm
+        self.e_up, self.e_down = e_up, e_down
+        # HACK for debug
+        self.dr_te, self.dr_tm, self.ur_te, self.ur_tm, self.yuc, self.zuc = \
+            reflection(
+                self.si, self.K, self.L, self.M, self.u,
+                self.thick, self.admy, self.admz
+                )
         return lambda_
 
     def _electric_field_f(self, direction, omega):
@@ -243,17 +258,11 @@ class EM1D:
     def _magnetic_field_f(self, direction, omega):
         # 方向ごとの繰り返し計算不要
         y_base, wt0, wt1 = load_hankel_filter(self.hankel_filter)
-        ans = np.array([])
-        for axis in direction:
-            e_f = self.source._hankel_transform_h(self, axis, omega, y_base, wt0, wt1)
-            np.append(ans, e_f)
-        ans = np.array(ans)
+        ans = self.source._hankel_transform_h(self, direction, omega, y_base, wt0, wt1)
+        if len(direction) == 1:
+            ans = ans[0]
         return ans
 
     def _electric_field_t(self, xyz_comp):
         ans = np.array([])
-        for direction in xyz_comp:
-            e_f = self._compute_e_f(direction)[0]
-            e_t = self.call_fdtd_transform(self.source, e_f)
-            np.append(ans, e_t)
         return ans
