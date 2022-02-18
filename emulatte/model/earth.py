@@ -19,6 +19,7 @@ import scipy.constants as const
 
 from ..utils.converter import array
 from ..function.filter import load_hankel_filter, load_fft_filter
+from ..function.fxform import lagged_convolution
 from .element import *
 
 class EM1D:
@@ -43,6 +44,10 @@ class EM1D:
         self.L = len(thickness) + 2
         # STATE
         self.state = "quasistatic"
+        # DEFAULT HANKEL FILTER
+        self.hankel_filter = 'key201'
+        # DEFAULT FTDT METHOD
+        self.freq_to_time = 'dlag'
 
     def set_params(self, resistivity, epsilon_r=None, mu_r=None):
         r"""
@@ -92,9 +97,9 @@ class EM1D:
         self.source_type = source.__class__.__name__
         self.source_applied = True
         
-    def set_filter(self, hankel_filter, ftdt_filter=None):
+    def set_filter(self, hankel_filter, ftdt='flc'):
         self.hankel_filter = hankel_filter
-        self.ftdt_filter = ftdt_filter
+        self.ftdt = ftdt
         self.filter_applied = True
         
     def field(self, which, direction, loc, freqtime, time_diff=False):
@@ -102,7 +107,7 @@ class EM1D:
         direction = [char for char in direction]
         self.rc = array(loc)
         self.time_diff = time_diff
-        self._geometric_basics()
+        self._calc_geometric_basics()
         signal = self.source.signal
         if signal == "f":
             omega = 2 * np.pi * array(freqtime)
@@ -124,18 +129,18 @@ class EM1D:
         else:
             time = array(freqtime)
             if which == "E":
-                ans = self._electric_field_t(direction, time)
+                ans = self._electric_field_t(direction, time, time_diff)
             elif which == "H":
-                ans = self._magnetic_field_t(direction, time)
+                ans = self._magnetic_field_t(direction, time, time_diff)
             elif which == "D":
                 eperm = self.epsilon[self.ri]
-                ans = eperm * self._electric_field_t(direction, time)
+                ans = eperm * self._electric_field_t(direction, time, time_diff)
             elif which == "B":
                 mperm = self.mu[self.ri]
-                ans = mperm * self._magnetic_field_t(direction, time)
+                ans = mperm * self._magnetic_field_t(direction, time, time_diff)
             elif which == "J":
                 sigma = self.sigma[self.ri]
-                ans = sigma * self._electric_field_t(direction, time)
+                ans = sigma * self._electric_field_t(direction, time, time_diff)
             else:
                 raise Exception
         return ans
@@ -156,15 +161,10 @@ class EM1D:
         else:
             pass
 
-    def _geometric_basics(self):
-        def in_which_layer(z, depth):
-            layer_index = self.N
-            for i in range(self.L-1):
-                if z <= depth[i]:
-                    layer_index = i
-                    break
-                else:
-                    continue
+    def _calc_geometric_basics(self):
+        def _get_layer_index(z, depth):
+            is_above = list(depth <= z)
+            layer_index = is_above.count(True)
             return layer_index
 
         point_source = ["VMD", "HMD", "HED", "Loop"]
@@ -174,11 +174,9 @@ class EM1D:
             r = ((sx-rx) ** 2 + (sy-ry) ** 2 + (sz-rz) ** 2) ** 0.5
             if r == 0:
                 r = 1e-8
-
             # ANGLE
             cos_phi = (rx - sx) / r
             sin_phi = (ry - sy) / r
-
             # 特異点の回避
             if self.hankel_filter == "anderson801":
                 delta_z = 1e-4
@@ -190,42 +188,27 @@ class EM1D:
             # to avoid singularity of source potential
             if sz == rz:
                 sz = sz - delta_z
-
             # 送受信点が含まれる層の特定
-            si = in_which_layer(sz, self.depth)
-            ri = in_which_layer(rz, self.depth)
-
+            si = _get_layer_index(sz, self.depth)
+            ri = _get_layer_index(rz, self.depth)
             # return to self
             self.sx, self.sy, self.sz = sx, sy, sz
             self.rx, self.ry, self.rz = rx, ry, rz
-            self.si = si
-            self.ri = ri
-            self.r = r
-            self.cos_phi = cos_phi
-            self.sin_phi = sin_phi
+            self.si, self.ri = si, ri
+            self.r, self.cos_phi, self.sin_phi = r, cos_phi, sin_phi
 
         elif self.source_type == "Line":
             pass
             
-    def _compute_admittivity(self, omega):
+    def _calc_em_admittion(self, omega):
         self.admz = 1j * omega.reshape(-1,1) * self.mu.reshape(1,-1)
         self.admy = (np.ones((self.K, self.L)) * self.sigma.reshape(1,-1)).astype(complex)
         self.admy[:, 0] = 1j * omega * self.epsilon[0]
         return None
 
-    def _compute_kernel_integrants(self, omega, y_base, r):
-        """
-        Parameters
-        ----------
-        omega : ndarray(ndim=1, hankel_length)
-        lambda_ : ndarray(ndmi=1, length=hankel_length)
-        """
-        lambda_ = y_base / r
-        self.lambda_ = lambda_
-        self.K = len(omega)
-        self.M = len(lambda_)
-        self._compute_admittivity(omega)
+    def _calc_wavenumbers(self, lambda_):
         self.k = np.sqrt(-self.admy*self.admz)
+
         # calculate 3d tensor u = lambda**2 - k**2
         lambda_v = np.zeros((self.K, self.L, self.M), dtype=complex)
         lambda_v[:,:] = lambda_
@@ -233,12 +216,26 @@ class EM1D:
         k_v[:] = self.k.T
         k_v = k_v.transpose((2,1,0))
         self.u = np.sqrt(lambda_v ** 2 - k_v ** 2)
-        # compute damping coefficients
+        return None
+
+    def _calc_kernel_components(self, omega, y_base, r):
+        """
+        Parameters
+        ----------
+        """
+        lambda_ = y_base / r
+        self.lambda_ = lambda_
+        self.K = len(omega)
+        self.M = len(lambda_)
+        self._calc_em_admittion(omega)
+        self._calc_wavenumbers(lambda_)
+
         # TODO separate TE, TM, and both
         u_te, d_te, u_tm, d_tm, e_up, e_down = tetm_mode_damping(self)
         self.u_te, self.d_te = u_te, d_te
         self.u_tm, self.d_tm = u_tm, d_tm
         self.e_up, self.e_down = e_up, e_down
+
         # HACK for debug
         self.dr_te, self.dr_tm, self.ur_te, self.ur_tm, self.yuc, self.zuc = \
             reflection(
@@ -263,6 +260,28 @@ class EM1D:
             ans = ans[0]
         return ans
 
-    def _electric_field_t(self, xyz_comp):
-        ans = np.array([])
+    def _electric_field_t(self, direction, time, time_diff):
+        signal = self.source.signal
+        em = 'e'
+        if signal == 'awave':
+            #arbitrary waveform
+            raise Exception
+        else:
+            if self.freq_to_time == 'dlag':
+                ans = lagged_convolution(self, em, direction, time, signal, time_diff)
+            else:
+                raise Exception
+        return ans
+
+    def _magnetic_field_t(self, direction, time, time_diff):
+        signal = self.source.signal
+        em = 'm'
+        if signal == 'awave':
+            #arbitrary waveform
+            raise Exception
+        else:
+            if self.freq_to_time == 'dlag':
+                ans = lagged_convolution(self, em, direction, time, signal, time_diff)
+            else:
+                raise Exception
         return ans

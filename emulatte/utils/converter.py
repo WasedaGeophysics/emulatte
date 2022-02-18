@@ -18,14 +18,14 @@ def check_waveform(ontime):
     else:
         ontime = array(ontime)
         if len(ontime) > 1:
-            tx_type = "a"
+            tx_type = "awave"
         elif len(ontime) == 1:
             if ontime[0] > 0:
-                tx_type = "step-on"
+                tx_type = "stepon"
             elif ontime[0] == 0:
                 tx_type = "impulse"
             else:
-                tx_type = "step-off"
+                tx_type = "stepoff"
         else:
             raise Exception(ValueError)
     return tx_type

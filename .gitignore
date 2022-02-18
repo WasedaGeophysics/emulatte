@@ -6,6 +6,8 @@
 *.png
 
 emulatte_zero/
+test/
+debug/
 
 # Python Template
 # Byte-compiled / optimized / DLL files

@@ -31,7 +31,8 @@ class VMD:
         self.mode = "TE"
 
     def _hankel_transform_e(self, model, direction, omega, y_base, wt0, wt1):
-        lambda_ = model._compute_kernel_integrants(omega, y_base, model.r)
+        model._calc_kernel_components(omega, y_base, model.r)
+        lambda_ = model.lambda_
         z = model.admz[:, model.ri]
         r = model.r
         ans = []
@@ -54,7 +55,8 @@ class VMD:
         return ans
         
     def _hankel_transform_h(self, model, direction, omega, y_base, wt0, wt1):
-        lambda_ = model._compute_kernel_integrants(omega, y_base, model.r)
+        model._calc_kernel_components(omega, y_base, model.r)
+        lambda_ = model.lambda_
         zr = model.admz[:, model.ri]
         zs = model.admz[:, model.si]
         r = model.r
@@ -93,7 +95,8 @@ class HED:
         self.mode = "TE"
 
     def _hankel_transform_e(self, model, direction, omega, y_base, wt0, wt1):
-        lambda_ = model._compute_kernel_integrants(omega, y_base, model.r)
+        model._calc_kernel_components(omega, y_base, model.r)
+        lambda_ = model.lambda_
         z = model.admz[:, model.ri]
         r = model.r
         ans = []
@@ -116,7 +119,8 @@ class HED:
         return ans
         
     def _hankel_transform_h(self, model, direction, omega, y_base, wt0, wt1):
-        lambda_ = model._compute_kernel_integrants(omega, y_base, model.r)
+        model._calc_kernel_components(omega, y_base, model.r)
+        lambda_ = model.lambda_
         zr = model.admz[:, model.ri]
         zs = model.admz[:, model.si]
         r = model.r
