@@ -273,26 +273,29 @@ class DynamicEM1D:
             if sz[0] == rz:
                 sz = sz - delta_z
 
-            ssx = sx[1] - sx[0]
-            ssy = sy[1] - sy[0]
-            srx = rx - sx[0]
-            sry = ry - sy[0]
-            srz = rz - sz[0]
-            u_vec = np.array([ssx, ssy, 0])
-            v_vec = np.array([srx, sry, srz])
-            uv = u_vec @ v_vec
-            u2 = u_vec @ u_vec
-            t = uv/u2
-            if t > 1:
-                d_vec = v_vec - u_vec
-                dist = np.sqrt(float(d_vec @ d_vec))
-            elif t < 0:
-                dist = np.sqrt(float(v_vec @ v_vec))
+            if self.source.split is None:
+                ssx = sx[1] - sx[0]
+                ssy = sy[1] - sy[0]
+                srx = rx - sx[0]
+                sry = ry - sy[0]
+                srz = rz - sz[0]
+                u_vec = np.array([ssx, ssy, 0])
+                v_vec = np.array([srx, sry, srz])
+                uv = u_vec @ v_vec
+                u2 = u_vec @ u_vec
+                t = uv/u2
+                if t > 1:
+                    d_vec = v_vec - u_vec
+                    dist = np.sqrt(float(d_vec @ d_vec))
+                elif t < 0:
+                    dist = np.sqrt(float(v_vec @ v_vec))
+                else:
+                    d_vec = v_vec - t*u_vec
+                    dist = np.sqrt(float(d_vec @ d_vec))
+                sup = dist / 5
+                split = int(length/sup) + 1
             else:
-                d_vec = v_vec - t*u_vec
-                dist = np.sqrt(float(d_vec @ d_vec))
-            sup = dist / 5
-            split = int(length/sup) + 1
+                split = self.source.split
 
             # 節点
             sx_node = np.linspace(sx[0], sx[1], split + 1)

@@ -4,14 +4,14 @@ from .kernel import _calc_kernel_hed_tm_er, _calc_kernel_hed_te_er, _calc_kernel
 from .kernel import _calc_kernel_hed_tm_hr, _calc_kernel_hed_te_hr, _calc_kernel_hed_te_hz
 
 class HGW:
-    def __init__(self, current, ontime = None):
+    def __init__(self, current, ontime = None, split=None):
         self.current = array(current)
         moment = array(current)
         self.kernel_te_up_sign = 1
         self.kernel_te_down_sign = 1
         self.kernel_tm_up_sign = -1
         self.kernel_tm_down_sign = 1
-
+        self.split = split
         self.signal = check_waveform(ontime)
 
         if len(moment) == 1:
