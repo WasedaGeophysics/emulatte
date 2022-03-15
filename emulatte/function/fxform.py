@@ -4,7 +4,7 @@ import scipy.signal as ss
 from .filter import load_fft_filter
 from ..utils.converter import array
 
-def lagged_convolution(model, em, direction, time, signal, time_diff):
+def lagged_convolution(model, which, direction, time, signal):
     base, cos, sin = load_fft_filter('anderson_sin_cos_filter_787')
     # etime
     XRE = 1.1051709180756477124
@@ -30,12 +30,7 @@ def lagged_convolution(model, em, direction, time, signal, time_diff):
     omega_2 = phase / etime[0]
     omega = np.concatenate([omega_1[:-1], omega_2])
 
-    if em == 'e':
-        fd_ans = model._electric_field_f(direction, omega)
-    elif em == 'm':
-        fd_ans = model._magnetic_field_f(direction, omega)
-    else:
-        raise Exception
+    fd_ans = model._em_field_f(which, direction, omega)
 
     if signal == 'stepoff':
         kernel_cell = - 2 / np.pi * fd_ans.imag / omega
@@ -53,12 +48,17 @@ def lagged_convolution(model, em, direction, time, signal, time_diff):
     cut_off = 5e5
     b, a = ss.iirfilter(1, cut_off, btype='lowpass', analog=True, ftype='butter')
     w, h = ss.freqs(b, a, freq)
-    kernel_cell = kernel_cell * h
+    kernel_cell = (kernel_cell * h).real
 
-    kernel = np.zeros((ndir, etime_size, phase_size))
-    for i in range(etime_size):
-        cut = (etime_size - 1 - i, etime_size + phase_size - 1 - i)
-        kernel[:, i] = kernel_cell[cut[0]:cut[1]]
+    kernel = np.zeros((ndir, etime_size, phase_size), dtype=float)
+    if ndir == 1:
+        for i in range(etime_size):
+            cut = (etime_size - 1 - i, etime_size + phase_size - 1 - i)
+            kernel[:, i] = kernel_cell[cut[0]:cut[1]]
+    else:
+        for i in range(etime_size):
+            cut = (etime_size - 1 - i, etime_size + phase_size - 1 - i)
+            kernel[:, i] = kernel_cell[:, cut[0]:cut[1]]
     
     if signal in {'stepoff', 'impulse'}:
         eans = kernel @ cos / etime

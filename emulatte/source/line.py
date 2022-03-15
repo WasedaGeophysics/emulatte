@@ -98,7 +98,7 @@ class HGW:
             e_z = self.moment * e_z
             ans.append(e_z)
         ans = np.array(ans).astype(complex)
-        if model.time_diff:
+        if model.time_derivative:
             ans = ans * omega * 1j
         return ans
     
@@ -181,7 +181,7 @@ class HGW:
             ans.append(h_z)
 
         ans = np.array(ans).astype(complex)
-        if model.time_diff:
+        if model.time_derivative:
             ans = ans * omega * 1j
         return ans
 

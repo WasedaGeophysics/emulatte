@@ -18,7 +18,7 @@ import numpy as np
 import scipy.constants as const
 
 from ..utils.converter import array
-from ..function.filter import load_hankel_filter, load_fft_filter
+from ..function.filter import load_hankel_filter
 from ..function.fxform import lagged_convolution
 from .element import *
 
@@ -92,61 +92,116 @@ class DynamicEM1D:
         self.params_applied = True
         
     def set_source(self, source, loc):
+        r"""
+        Parameters
+        ----------
+        source : emulatte Source class
+
+        loc : array-like
+            coordinate of specified source (x, y, z)
+        """
         self.source = source
         self.sc = array(loc)
         self.source_type = source.__class__.__name__
         self.source_applied = True
         
     def set_filter(self, hankel_filter, ftdt='dlag'):
+        r"""
+        Parameters
+        ----------
+        hankel_filter : str
+            name of linear filter of Hankel transformation
+            - collection -
+            anderson801 / kong241 / mizunaga90 / werthmuller201 / key201
+
+
+        ftdt : str
+            select a method for frequency-time domain transformation
+            - collection -
+            dlag
+
+            default = dlag
+
+        """
         self.hankel_filter = hankel_filter
         self.ftdt = ftdt
         self.filter_applied = True
         
-    def field(self, which, direction, loc, freqtime, time_diff=False):
+    def field(self, which, direction, loc, freqtime, time_derivative=False):
+        r"""
+        Parameters
+        ----------
+        which : str
+            type of electromagnetic vector field
+            'E' for electric field
+            'H' for magnetic field
+            'D' for electric flux density
+            'B' for magnetic flux density
+            'J' for electrical current
+
+        direction : str
+            measurement direction, x, y, and z
+
+        loc : array-like
+            coordinate of measurement point (x, y, z)
+
+        freqtime : array-like
+            measurement frequency or time of the receiver
+
+        time-derivative : bool
+            if True is input, the returned values are time derivatives
+
+        Returns
+        -------
+        ans : ndarray
+            in FD, dtype = complex
+            in TD, dtype = real 
+        """
         self._check_input()
         direction = [char for char in direction]
         self.rc = array(loc)
-        self.time_diff = time_diff
+        self.time_derivative = time_derivative
         self._calc_geometric_basics()
         signal = self.source.signal
         if signal == "f":
             omega = 2 * np.pi * array(freqtime)
             if which == "E":
-                ans = self._electric_field_f(direction, omega)
+                ans = self._em_field_f('e', direction, omega)
             elif which == "H":
-                ans = self._magnetic_field_f(direction, omega)
+                ans = self._em_field_f('m', direction, omega)
             elif which == "D":
                 eperm = self.epsilon[self.ri]
-                ans = eperm * self._electric_field_f(direction, omega)
+                ans = eperm * self._em_field_f('e', direction, omega)
             elif which == "B":
                 mperm = self.mu[self.ri]
-                ans = mperm * self._magnetic_field_f(direction, omega)
+                ans = mperm * self._em_field_f('m', direction, omega)
             elif which == "J":
                 sigma = self.sigma[self.ri]
-                ans = sigma * self._electric_field_f(direction, omega)
+                ans = sigma * self._em_field_f('e', direction, omega)
             else:
                 raise Exception
         else:
             time = array(freqtime)
             if which == "E":
-                ans = self._electric_field_t(direction, time, time_diff)
+                ans = self._em_field_t('e', direction, time, time_derivative)
             elif which == "H":
-                ans = self._magnetic_field_t(direction, time, time_diff)
+                ans = self._em_field_t('m', direction, time, time_derivative)
             elif which == "D":
                 eperm = self.epsilon[self.ri]
-                ans = eperm * self._electric_field_t(direction, time, time_diff)
+                ans = eperm * self._em_field_t('e', direction, time, time_derivative)
             elif which == "B":
                 mperm = self.mu[self.ri]
-                ans = mperm * self._magnetic_field_t(direction, time, time_diff)
+                ans = mperm * self._em_field_t('m', direction, time, time_derivative)
             elif which == "J":
                 sigma = self.sigma[self.ri]
-                ans = sigma * self._electric_field_t(direction, time, time_diff)
+                ans = sigma * self._em_field_t('e', direction, time, time_derivative)
             else:
                 raise Exception
         return ans
 
     def receive(self, receiver, rc):
         # 受信機器固有の測定量（コインシデント、電圧ダイポールなど）
+        # そのうち実装する予定
         pass
 
     def _check_input(self):
@@ -356,47 +411,27 @@ class DynamicEM1D:
                 )
         return None
 
-    def _electric_field_f(self, direction, omega):
+    def _em_field_f(self, which, direction, omega):
         # 方向ごとの繰り返し計算不要
         y_base, wt0, wt1 = load_hankel_filter(self.hankel_filter)
         self.M = len(y_base)
-        ans = self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        if which == 'e':
+            ans = self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        elif which == 'm':
+            ans = self.source._hankel_transform_h(self, direction, omega, y_base, wt0, wt1)
         if len(direction) == 1:
             ans = ans[0]
         return ans
 
-    def _magnetic_field_f(self, direction, omega):
-        # 方向ごとの繰り返し計算不要
-        y_base, wt0, wt1 = load_hankel_filter(self.hankel_filter)
-        self.M = len(y_base)
-        ans = self.source._hankel_transform_h(self, direction, omega, y_base, wt0, wt1)
-        if len(direction) == 1:
-            ans = ans[0]
-        return ans
-
-    def _electric_field_t(self, direction, time, time_diff):
+    def _em_field_t(self, which, direction, time, time_derivative):
         signal = self.source.signal
-        em = 'e'
         if signal == 'awave':
             self.source.moment = 1
             #arbitrary waveform
             raise Exception
         else:
             if self.freq_to_time == 'dlag':
-                ans = lagged_convolution(self, em, direction, time, signal, time_diff)
-            else:
-                raise Exception
-        return ans
-
-    def _magnetic_field_t(self, direction, time, time_diff):
-        signal = self.source.signal
-        em = 'm'
-        if signal == 'awave':
-            #arbitrary waveform
-            raise Exception
-        else:
-            if self.freq_to_time == 'dlag':
-                ans = lagged_convolution(self, em, direction, time, signal, time_diff)
+                ans = lagged_convolution(self, which, direction, time, signal)
             else:
                 raise Exception
         return ans
@@ -429,8 +464,9 @@ class QuasiStaticEM1D(DynamicEM1D):
         self.omega = omega
         self.K = len(omega)
         self.admz = 1j * omega.reshape(-1,1) * self.mu.reshape(1,-1)
-        admy = self.sigma.reshape(1,-1)
+        admy = self.sigma.reshape(1,-1).astype(complex)
         self.admy = (np.ones((self.K, self.L)) * admy).astype(complex)
+        self.admy[:, 0] = 1e-30
         self.k = np.sqrt(-self.admy*self.admz)
         return None
 
@@ -482,7 +518,7 @@ class PeltonIPEM1D(DynamicEM1D):
         res_0 = array(resistivity)
         if not len(res_0) == self.N:
             raise Exception
-        self.res_0 = np.append(np.inf, res_0)
+        self.res_0 = np.append(1e30, res_0)
         self.cond_0 = 1 / self.res_0
 
         m = array(chargeability)
@@ -518,5 +554,125 @@ class PeltonIPEM1D(DynamicEM1D):
         im = 1 + (1j * omega.reshape(-1,1) * self.tau.reshape(1,-1)) ** self.c.reshape(1,-1)
         zeta = 1 - self.m.reshape(1,-1) * (1 - 1 / im)
         self.admy = 1 / zeta * self.cond_0.reshape(1,-1)
+        self.admy[:, 0] = 1j * omega * const.epsilon_0
+        self.zeta = 1 / self.admy
         self.k = np.sqrt(-self.admy*self.admz)
         return None
+
+    def field(self, which, direction, loc, freqtime, time_derivative=False):
+        r"""
+        Parameters
+        ----------
+        which : str
+            type of electromagnetic vector field
+            'E' for electric field
+            'H' for magnetic field
+            'D' for electric flux density
+            'B' for magnetic flux density
+            'J' for electrical current
+            'JIP' for capacitive current density
+            'JEM' for conduction current density
+
+        direction : str
+            measurement direction, x, y, and z
+
+        loc : array-like
+            coordinate of measurement point (x, y, z)
+
+        freqtime : array-like
+            measurement frequency or time of the receiver
+
+        time-derivative : bool
+            if True is input, the returned values are time derivatives
+
+        Returns
+        -------
+        ans : ndarray
+            in FD, dtype = complex
+            in TD, dtype = real 
+        """
+        self._check_input()
+        direction = [char for char in direction]
+        self.rc = array(loc)
+        self.time_derivative = time_derivative
+        self._calc_geometric_basics()
+        signal = self.source.signal
+        if signal == "f":
+            omega = 2 * np.pi * array(freqtime)
+            if which == "E":
+                ans = self._em_field_f('e', direction, omega)
+            elif which == "H":
+                ans = self._em_field_f('m', direction, omega)
+            elif which == "D":
+                eperm = self.epsilon[self.ri]
+                ans = eperm * self._em_field_f('e', direction, omega)
+            elif which == "B":
+                mperm = self.mu[self.ri]
+                ans = mperm * self._em_field_f('m', direction, omega)
+            elif which == "J":
+                admy = self.admy[:, self.ri]
+                ans = admy * self._em_field_f('e', direction, omega)
+            elif which == "JIP":
+                ans = self._em_field_f('ipr', direction, omega)
+            elif which == "JEM":
+                ans = self._em_field_f('ipc', direction, omega)
+            else:
+                raise Exception
+        else:
+            time = array(freqtime)
+            if which == "E":
+                ans = self._em_field_t('e', direction, time, time_derivative)
+            elif which == "H":
+                ans = self._em_field_t('m', direction, time, time_derivative)
+            elif which == "D":
+                eperm = self.epsilon[self.ri]
+                ans = eperm * self._em_field_t('e', direction, time, time_derivative)
+            elif which == "B":
+                mperm = self.mu[self.ri]
+                ans = mperm * self._em_field_t('m', direction, time, time_derivative)
+            elif which == "J":
+                ans = self._em_field_t('ipt', direction, time, time_derivative)
+            elif which == "JIP":
+                ans = self._em_field_t('ipr', direction, time, time_derivative)
+            elif which == "JEM":
+                ans = self._em_field_t('ipc', direction, time, time_derivative)
+            else:
+                raise Exception
+        return ans
+
+    def _em_field_f(self, which, direction, omega):
+        self._calc_em_admittion(omega)
+        # 方向ごとの繰り返し計算不要
+        y_base, wt0, wt1 = load_hankel_filter(self.hankel_filter)
+        self.M = len(y_base)
+        if which == 'e':
+            ans = self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        elif which == 'm':
+            ans = self.source._hankel_transform_h(self, direction, omega, y_base, wt0, wt1)
+        elif which == 'ipt':
+            ri = self.ri
+            admy = self.admy[:,ri]
+            ans = admy * self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        elif which == 'ipr':
+            ri = self.ri
+            m = self.m[ri]
+            tau = self.tau[ri]
+            c = self.c[ri]
+            admy = self.admy[:,ri]
+            nume = m * (1j * omega * tau) ** c
+            deno = 1 - m  + nume
+            ratio = nume / deno
+            ans = ratio * admy * self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        elif which == 'ipc':
+            ri = self.ri
+            m = self.m[ri]
+            tau = self.tau[ri]
+            c = self.c[ri]
+            admy = self.admy[:,ri]
+            nume = m * (1j * omega * tau) ** c
+            deno = 1 - m  + nume
+            ratio = (1 - m) / deno
+            ans = ratio * admy * self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        if len(direction) == 1:
+            ans = ans[0]
+        return ans

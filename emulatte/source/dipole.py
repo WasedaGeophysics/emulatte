@@ -55,7 +55,7 @@ class VMD:
             e_z = np.zeros(model.K)
             ans.append(e_z)
         ans = np.array(ans)
-        if model.time_diff:
+        if model.time_derivative:
             ans = ans * omega * 1j
         return ans
         
@@ -84,7 +84,7 @@ class VMD:
             h_z = self.moment * factor * (kernel[0] @ wt0)
             ans.append(h_z)
         ans = np.array(ans)
-        if model.time_diff:
+        if model.time_derivative:
             ans = ans * omega * 1j
         return ans
 
