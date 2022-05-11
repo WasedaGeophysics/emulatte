@@ -4,6 +4,7 @@
 .ipynb_checkpoints
 *.DS_Store
 *.png
+.pypirc
 
 emulatte_zero/
 test/
