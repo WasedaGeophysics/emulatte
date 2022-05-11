@@ -32,7 +32,7 @@ setup(
     url = 'https://github.com/WasedaGeophysics/emulatte.git',
     download_url = 'https://github.com/WasedaGeophysics/emulatte.git',
     license = license("Apache2.0"),
-    keywords = 'electromagnetics geophysics EM 1DEM'
+    keywords = 'electromagnetics geophysics EM 1DEM',
     packages = find_packages(exclude=('docs', 'lab', 'example', 'analytical')),
     install_requires = open('requirements.txt').read().splitlines(),
 )
