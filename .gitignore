@@ -1,8 +1,14 @@
 .vscode/
 .test/
+.idea/
 .ipynb_checkpoints
 *.DS_Store
 *.png
+
+emulatte_zero/
+test/
+debug/
+ex1dem/
 
 # Python Template
 # Byte-compiled / optimized / DLL files
