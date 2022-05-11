@@ -19,7 +19,7 @@ import scipy.constants as const
 
 from ..utils.converter import array
 from ..function.filter import load_hankel_filter
-from ..function.fxform import lagged_convolution
+from ..function.ftdt import lagged_convolution, interp_fft
 from .element import *
 
 class DynamicEM1D:
@@ -45,9 +45,14 @@ class DynamicEM1D:
         # STATE
         self.state = "dynamic"
         # DEFAULT HANKEL FILTER
-        self.hankel_filter = 'key201'
+        self.hankel_filter = "key201"
         # DEFAULT FTDT METHOD
-        self.freq_to_time = 'dlag'
+        self.ftdt_method = "dlag"
+
+        self.set_params_done = False
+        self.set_source_done = False
+        self.set_filter_done = False
+
 
     def set_params(self, resistivity, epsilon_r=None, mu_r=None):
         r"""
@@ -89,7 +94,7 @@ class DynamicEM1D:
             else:
                 mu = array(mu_r) * const.mu_0
         self.mu = np.append(const.mu_0, mu)
-        self.params_applied = True
+        self.set_params_done = True
         
     def set_source(self, source, loc):
         r"""
@@ -103,19 +108,19 @@ class DynamicEM1D:
         self.source = source
         self.sc = array(loc)
         self.source_type = source.__class__.__name__
-        self.source_applied = True
+        self.set_source_done = True
         
-    def set_filter(self, hankel_filter, ftdt='dlag'):
+    def set_filter(self, hankel_filter, ftdt_config=None):
         r"""
         Parameters
         ----------
-        hankel_filter : str
+        hankel_filter : str or array-like
             name of linear filter of Hankel transformation
             - collection -
             anderson801 / kong241 / mizunaga90 / werthmuller201 / key201
 
 
-        ftdt : str
+        ftdt_config : dict
             select a method for frequency-time domain transformation
             - collection -
             dlag
@@ -123,9 +128,27 @@ class DynamicEM1D:
             default = dlag
 
         """
-        self.hankel_filter = hankel_filter
-        self.ftdt = ftdt
-        self.filter_applied = True
+
+        if type(hankel_filter) is str:
+            self.hankel_filter = hankel_filter
+        #TODO hankel filter direct input
+        else:
+            raise Exception
+
+        if ftdt_config is None:
+            ftdt_config = {
+                "method" : "dlag"
+            }
+
+        self.ftdt_method = ftdt_config["method"]
+        if ftdt_config["method"] == "dlag":
+            pass
+        elif ftdt_config["method"] == "fft":
+            self.fft_filter = ftdt_config["filter"]
+        else:
+            raise Exception
+
+        self.set_filter_done = True
         
     def field(self, which, direction, loc, freqtime, time_derivative=False):
         r"""
@@ -183,18 +206,18 @@ class DynamicEM1D:
         else:
             time = array(freqtime)
             if which == "E":
-                ans = self._em_field_t('e', direction, time, time_derivative)
+                ans = self._em_field_t('e', direction, time)
             elif which == "H":
-                ans = self._em_field_t('m', direction, time, time_derivative)
+                ans = self._em_field_t('m', direction, time)
             elif which == "D":
                 eperm = self.epsilon[self.ri]
-                ans = eperm * self._em_field_t('e', direction, time, time_derivative)
+                ans = eperm * self._em_field_t('e', direction, time)
             elif which == "B":
                 mperm = self.mu[self.ri]
-                ans = mperm * self._em_field_t('m', direction, time, time_derivative)
+                ans = mperm * self._em_field_t('m', direction, time)
             elif which == "J":
                 sigma = self.sigma[self.ri]
-                ans = sigma * self._em_field_t('e', direction, time, time_derivative)
+                ans = sigma * self._em_field_t('e', direction, time)
             else:
                 raise Exception
         return ans
@@ -205,15 +228,15 @@ class DynamicEM1D:
         pass
 
     def _check_input(self):
-        if not self.params_applied:
-            print('set parameter')
+        if not self.set_params_done:
+            print("set parameter")
             raise Exception
-        elif not self.source_applied:
-            print('set source')
+        elif not self.set_source_done:
+            print("set source")
             raise Exception
-        elif not self.filter_applied:
-            print('set filter')
-        else:
+        elif not self.set_filter_done:
+            self.set_filter("key201", {"method" : "dlag"})
+        else: 
             pass
 
     def _calc_geometric_basics(self):
@@ -422,19 +445,23 @@ class DynamicEM1D:
             ans = self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
         elif which == 'm':
             ans = self.source._hankel_transform_h(self, direction, omega, y_base, wt0, wt1)
+        if self.time_derivative & (self.source.signal == "f"):
+            ans = 1.j * omega * ans
         if len(direction) == 1:
             ans = ans[0]
         return ans
 
-    def _em_field_t(self, which, direction, time, time_derivative):
+    def _em_field_t(self, which, direction, time):
         signal = self.source.signal
         if signal == 'awave':
             self.source.moment = 1
             #arbitrary waveform
             raise Exception
         else:
-            if self.freq_to_time == 'dlag':
+            if self.ftdt_method == "dlag":
                 ans = lagged_convolution(self, which, direction, time, signal)
+            elif self.ftdt_method == "fft":
+                ans = interp_fft(self, which, direction, time, signal)
             else:
                 raise Exception
         return ans
@@ -459,9 +486,12 @@ class QuasiStaticEM1D(DynamicEM1D):
         # STATE
         self.state = "quasistatic"
         # DEFAULT HANKEL FILTER
-        self.hankel_filter = 'key201'
+        self.hankel_filter = "key201"
         # DEFAULT FTDT METHOD
-        self.freq_to_time = 'dlag'
+        self.ftdt_method = "dlag"
+        self.set_params_done = False
+        self.set_source_done = False
+        self.set_filter_done = False
 
     def _calc_em_admittion(self, omega):
         self.omega = omega
@@ -493,9 +523,12 @@ class PeltonIPEM1D(DynamicEM1D):
         # STATE
         self.state = "IP"
         # DEFAULT HANKEL FILTER
-        self.hankel_filter = 'key201'
+        self.hankel_filter = "key201"
         # DEFAULT FTDT METHOD
-        self.freq_to_time = 'dlag'
+        self.ftdt_method = "dlag"
+        self.set_params_done = False
+        self.set_source_done = False
+        self.set_filter_done = False
 
     def set_params(self, resistivity, chargeability, relax_time, exponent, mu_r=None):
         r"""
@@ -548,7 +581,7 @@ class PeltonIPEM1D(DynamicEM1D):
             else:
                 mu = array(mu_r) * const.mu_0
         self.mu = np.append(const.mu_0, mu)
-        self.params_applied = True
+        self.set_params_done = True
 
     def _calc_em_admittion(self, omega):
         self.omega = omega
@@ -624,21 +657,21 @@ class PeltonIPEM1D(DynamicEM1D):
         else:
             time = array(freqtime)
             if which == "E":
-                ans = self._em_field_t('e', direction, time, time_derivative)
+                ans = self._em_field_t('e', direction, time)
             elif which == "H":
-                ans = self._em_field_t('m', direction, time, time_derivative)
+                ans = self._em_field_t('m', direction, time)
             elif which == "D":
                 eperm = self.epsilon[self.ri]
-                ans = eperm * self._em_field_t('e', direction, time, time_derivative)
+                ans = eperm * self._em_field_t('e', direction, time)
             elif which == "B":
                 mperm = self.mu[self.ri]
-                ans = mperm * self._em_field_t('m', direction, time, time_derivative)
+                ans = mperm * self._em_field_t('m', direction, time)
             elif which == "J":
-                ans = self._em_field_t('ipt', direction, time, time_derivative)
+                ans = self._em_field_t('ipt', direction, time)
             elif which == "JIP":
-                ans = self._em_field_t('ipr', direction, time, time_derivative)
+                ans = self._em_field_t('ipr', direction, time)
             elif which == "JEM":
-                ans = self._em_field_t('ipc', direction, time, time_derivative)
+                ans = self._em_field_t('ipc', direction, time)
             else:
                 raise Exception
         return ans
@@ -676,6 +709,8 @@ class PeltonIPEM1D(DynamicEM1D):
             deno = 1 - m  + nume
             ratio = (1 - m) / deno
             ans = ratio * admy * self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
+        if self.time_derivative & (self.source.signal == "f"):
+            ans = ans * 1.j * omega
         if len(direction) == 1:
             ans = ans[0]
         return ans

@@ -40,7 +40,7 @@ def load_hankel_filter(hankel_filter_name):
 
 # function for load fft filter
 def load_fft_filter(fft_filter_name):
-    if fft_filter_name == "anderson_sin_cos_filter_787":
+    if fft_filter_name == "anderson_time_787":
         base, cos, sin = load_anderson_time_787()
     elif fft_filter_name == "key_time_201":
         base, cos, sin = load_key_time_201()
