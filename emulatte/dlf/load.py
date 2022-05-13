@@ -16,8 +16,8 @@
 """
 hankelフィルター係数のロード
 """
-from ..filter_files import anderson_801, anderson_time_787, key_201, key_time_201
-from ..filter_files import kong_241, mizunaga_90, raito_time_250, werthmuller_201, werthmuller_time_201
+from .sin_cos_filter import anderson_801, anderson_time_787, key_201, key_time_201
+from .hankel_filter import kong_241, mizunaga_90, raito_time_250, werthmuller_201, werthmuller_time_201
 
 
 # function for load hankel filter
@@ -90,7 +90,7 @@ def load_key_201():
     return base, j0, j1
 
 
-# FFT
+# FDRIFT
 def load_anderson_time_787():
     base = anderson_time_787.base
     cos = anderson_time_787.cos
