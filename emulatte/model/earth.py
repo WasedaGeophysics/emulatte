@@ -445,8 +445,6 @@ class DynamicEM1D:
             ans = self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
         elif which == 'm':
             ans = self.source._hankel_transform_h(self, direction, omega, y_base, wt0, wt1)
-        if self.time_derivative & (self.source.signal == "f"):
-            ans = 1.j * omega * ans
         if len(direction) == 1:
             ans = ans[0]
         return ans
@@ -709,8 +707,6 @@ class PeltonIPEM1D(DynamicEM1D):
             deno = 1 - m  + nume
             ratio = (1 - m) / deno
             ans = ratio * admy * self.source._hankel_transform_e(self, direction, omega, y_base, wt0, wt1)
-        if self.time_derivative & (self.source.signal == "f"):
-            ans = ans * 1.j * omega
         if len(direction) == 1:
             ans = ans[0]
         return ans
