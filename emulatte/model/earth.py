@@ -18,8 +18,8 @@ import numpy as np
 import scipy.constants as const
 
 from ..utils.converter import array
-from ..dlf.dlf_load import load_hankel_filter
-from ..function.ftdt import lagged_convolution, interp_fft
+from ..dlf.dlf_loader import load_hankel_filter
+from ..tdem.ftdt import lagged_convolution, interp_fft
 from .element import *
 
 class DynamicEM1D:
@@ -370,16 +370,6 @@ class DynamicEM1D:
         self.k = np.sqrt(-self.admy*self.admz)
         return None
 
-    def _calc_u_3d_(self, lambda_):
-        # calculate 3d tensor u = lambda**2 - k**2
-        lambda_v = np.zeros((self.K, self.L, self.M), dtype=complex)
-        lambda_v[:,:] = lambda_
-        k_v = np.zeros((self.M, self.L, self.K), dtype=complex)
-        k_v[:] = self.k.T
-        k_v = k_v.transpose((2,1,0))
-        self.u = np.sqrt(lambda_v ** 2 - k_v ** 2)
-        return None
-
     def _calc_u_4d(self, lambda_):
         # for multiple dipole
         # calculate 4d tensor u = lambda**2 - k**2
@@ -390,29 +380,6 @@ class DynamicEM1D:
         k_v[:,:] = self.k.T
         k_v = k_v.transpose((0,3,2,1))
         self.u = np.sqrt(lambda_v ** 2 - k_v ** 2)
-        return None
-
-    def _calc_kernel_components_(self, y_base, r):
-        """
-        Parameters
-        ----------
-        """
-        lambda_ = y_base / r
-        self.lambda_ = lambda_
-        self._calc_u_3d(lambda_)
-
-        # TODO separate TE, TM, and both
-        u_te, d_te, u_tm, d_tm, e_up, e_down = tetm_mode_damping(self)
-        self.u_te, self.d_te = u_te, d_te
-        self.u_tm, self.d_tm = u_tm, d_tm
-        self.e_up, self.e_down = e_up, e_down
-
-        # HACK for debug
-        self.dr_te, self.dr_tm, self.ur_te, self.ur_tm, self.yuc, self.zuc = \
-            reflection(
-                self.si, self.K, self.L, self.M, self.u,
-                self.thick, self.admy, self.admz
-                )
         return None
 
     def _calc_kernel_components(self, y_base, rn):

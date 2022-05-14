@@ -38,15 +38,14 @@ def load_hankel_filter(hankel_filter_name):
     return base, j0, j1
 
 
-# function for load fft filter
-def load_fft_filter(fft_filter_name):
-    if fft_filter_name == "anderson_time_787":
+def load_sin_cos_filter(sin_cos_filter_name):
+    if sin_cos_filter_name == "anderson_time_787":
         base, cos, sin = load_anderson_time_787()
-    elif fft_filter_name == "key_time_201":
+    elif sin_cos_filter_name == "key_time_201":
         base, cos, sin = load_key_time_201()
-    elif fft_filter_name == "werthmuller_time_201":
+    elif sin_cos_filter_name == "werthmuller_time_201":
         base, cos, sin = load_werthmuller_time_201()
-    elif fft_filter_name == "raito_time_250":
+    elif sin_cos_filter_name == "raito_time_250":
         base, cos, sin = load_raito_time_250()
     else:
         raise NameError('invalid fft filter name')
