@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 from scipy import interpolate
 import scipy.signal as ss
-from ..dlf.dlf_loader import load_sin_cos_filter
+from ..dlf.loader import load_sin_cos_filter
 from ..utils.converter import array
 
 def lagged_convolution(model, which, direction, time, signal):

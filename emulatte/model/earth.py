@@ -18,7 +18,7 @@ import numpy as np
 import scipy.constants as const
 
 from ..utils.converter import array
-from ..dlf.dlf_loader import load_hankel_filter
+from ..dlf.loader import load_hankel_filter
 from ..tdem.ftdt import lagged_convolution, interp_fft
 from .element import *
 
