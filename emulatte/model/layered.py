@@ -33,10 +33,9 @@ from __future__ import annotations
 # from Third Party Libraries
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
-from pandas import NA
-import scipy.constants as const
 
 # from Internal Packages
+from .formulae import spatial, coef
 from ..utils.emu_object import Model, Source, DataArray
 from ..dlf import loader as dlf
 
@@ -44,7 +43,7 @@ class Earth1DEM(Model):
     r"""Main UI class holding model parameter and results
 
     """
-    def __init__(self, depth : ArrayLike, state : str = "qs") -> None:
+    def __init__(self, depth : ArrayLike, qss : bool = True) -> None:
         r"""
         Parameters
         ----------
@@ -57,9 +56,9 @@ class Earth1DEM(Model):
         self.thick = np.diff(self.depth)
         self.thick_all = np.array([np.inf, *self.thick, np.inf])
         # number of underground layer
-        self.nug : int = len(self.depth)
-        self.nlayer : int = self.nug + 1
-        self.state = state
+        self.nstrata : int = len(self.depth)
+        self.nlayer : int = self.nstrata + 1
+        self.qss : bool  = qss
 
         # default setting for Hankel transform
         self.ht_config = {
@@ -110,9 +109,9 @@ class Earth1DEM(Model):
         """
         res = np.array(res, dtype=float)
 
-        rep = np.ones(self.N) if rep is None else \
+        rep = np.ones(self.nstrata) if rep is None else \
               np.array(rep, dtype=float)
-        rmp = np.ones(self.N) if rmp is None else \
+        rmp = np.ones(self.nstrata) if rmp is None else \
               np.array(rmp, dtype=float)
 
         res = np.append(1e31, res)
@@ -146,7 +145,7 @@ class Earth1DEM(Model):
         else:
             raise Exception("Set parameters beforehand.")
     
-    def set_source(self, source : Source, loc : ArrayLike) -> None:
+    def set_source(self, source : Source, place : ArrayLike) -> None:
         r"""
         Parameters
         ----------
@@ -156,8 +155,8 @@ class Earth1DEM(Model):
             coordinate of specified source (x, y, z)
         """
         self.source = source
-        self.source_loc = np.array(loc, dtype=float)
-        self.source_type = source.__class__.__name__
+        self.source_place = np.array(place, ndmin=2, dtype=float)
+        self.source_name = source.__class__.__name__
         self.source_installed = True
 
 
@@ -172,10 +171,10 @@ class Earth1DEM(Model):
 
     def change_dlf_filter(
             self,
-            hankel_dlf = "key_201", 
+            hankel_dlf : str | dict = "key_201", 
             fourier_sin_cos_dlf : str | dict = "key_time_201"
             ) -> None:
-            pass
+        pass
 
     def fdem(
             self,
@@ -217,48 +216,43 @@ class Earth1DEM(Model):
             dtype = complex
         """
         
+        self.coordinate = np.array(coordinate)
+        # unpack direction strings
         direction = [char for char in direction]
-        self.rc = np.array(coordinate)
+        # calculate angular frequency
+        frequency = np.array(frequency, ndmin=1, dtype=float)
+        omega = 2 * np.pi * frequency
+        self.omega = omega
+        # normalize source vector magnitude in Fourier domain
+        if normalize:
+            self.source.magnitude_f = np.ones(self.nfreq)
 
         # 計算実行可能性の判定
         self._certificate()
-        # 空間環境の精査
-        self._scan_placement()
-        
-        if np.isscalar(frequency):
-            freqs = np.array([frequency])
-        else:
-            freqs = np.array(frequency)
 
-        omega = 2 * np.pi * frequency
-        nfreq = len(freqs)
+        # 空間環境の精査 
+        spatial.organize(self)
+        self.ndipole = len(self.rho)
 
-        if normalize:
-            source_strength_fd = np.ones(nfreq)
-        elif np.isscalar(self.source.strength_fd):
-            strength_fd = self.source.strength_fd
-            strength_fd = np.ones(nfreq, dtype=complex) * strength_fd
-            source_strength_fd = strength_fd
-        elif len(self.source.strength_fd) == nfreq:
-            source_strength_fd = self.source.strength_fd
-        else:
-            raise Exception("Moment/current size must be same as frequency.")
-
-        # compute data in FD
+        # compute normalized data in FD
         if fieldtype in {"E", "D", "J"}:
             data = self._compute_fdem_responce(direction, omega)
             if fieldtype == "D":
-                data = self.eperm[self.m] * data
+                data = self.eperm[self.ri] * data
             elif fieldtype == "J":
-                data = self.conductivity[self.m] * data
+                data = self.conductivity[self.ri] * data
         elif fieldtype in {"H", "B"}:
             data = self._compute_fdem_responce(
                             direction, omega, magnetic = True)
             if fieldtype == "B":
-                data = self.mperm[self.m] * data
+                data = self.mperm[self.ri] * data
         else:
             raise Exception
 
+        # apply source magnitude
+        data = data * self.source.magnitude_f
+
+        # differentiate with respect to time
         if time_derivative:
             data = data * 1.j * omega
 
@@ -315,55 +309,82 @@ class Earth1DEM(Model):
         else:
             raise NameError
 
+    def fdem_measure(self):
+        # 特殊ケース（ループのCoincident誘導起電力、その他プリメイドシステム）用
+        pass
 
+    def tdem_measure(self):
+        # 特殊ケース用
+        pass
 
     def _certificate(self):
         # フィルター設定の確認
-        pass
-    
-    def _scan_placement(self):
-        # 送受信配置送受信配置
-        point_source = [
-            "VMD", "HMD", "AMD", "VED", "HED", "AED", "CircularLoop"
-            ]
+        # ソースの周波数と測定周波数の一致
         pass
 
     def _conpute_fdem_responce(self, direction, omega, magnetic = False):
+        # compute admittivity, impedivity, wavenumber in each layer
+        admittivity, impedivity, k, nfreq = coef._compute_wavenumber(
+            self.resistivity, self.rel_e_permittivity, self.rel_m_peameability,
+            self.omega, self.qss
+        )
+
+        self.admittivity = admittivity
+        self.impedivity = impedivity
+        self.k = k
+        self.nfreq = nfreq
+
         if self.ht_config["method"] == "dlf":
             # フィルターの読み出し
             if self.ht_config["_user_def"]:
-                lambda_phase = np.array(self.ht_config["phase"])
+                ybase_phase = np.array(self.ht_config["phase"])
                 bessel_j0 = np.array(self.ht_config["j0"])
                 bessel_j1 = np.array(self.ht_config["j0"])
             else:
                 filter_name = self.ht_config["filter"]
-                lambda_phase, bessel_j0, bessel_j1 = \
+                ybase_phase, bessel_j0, bessel_j1 = \
                     dlf.load_hankel_filter(filter_name)
+
+            # compute wavenumber u
+            self.nphase = len(ybase_phase)
+            self.size4d = (self.ndipole, self.nfreq, self.nlayer, self.nphase)
+            self.lambda_ = coef.compute_lambda(ybase_phase, self.rho)
+            self.u = coef._compute_u(self.lambda_, self.k, self.size4d)
+
+            te_dsign = self.source.kernel_te_down_sign
+            tm_dsign = self.source.kernel_tm_down_sign
+            te_usign = self.source.kernel_te_up_sign
+            tm_usign = self.source.kernel_tm_up_sign
+
+            inp = (
+                self.thick_all,
+                self.depth,
+                self.zs,
+                self.z,
+                self.si,
+                self.ri,
+                self.size4d,
+                self.u, 
+                self.admittivity,
+                self.impedivity,
+                te_dsign,
+                tm_dsign,
+                te_usign,
+                tm_usign
+            )
+
+            u_te, d_te, u_tm, d_tm, e_up, e_down = \
+                                    coef.compute_up_down_damping(*inp)
+            self.u_te, self.d_te = u_te, d_te
+            self.u_tm, self.d_tm = u_tm, d_tm
+            self.e_up, self.e_down = e_up, e_down
             
             # compute fdem responce
-            if not magnetic:
-                fd_resp = self.source._compute_hankel_input_e(
-                                    self, direction, omega, 
-                                    lambda_phase, bessel_j0, bessel_j1
-                                    )
-            else:
-                fd_resp = self.source._compute_hankel_input_m(
-                                    self, direction, omega, 
-                                    lambda_phase, bessel_j0, bessel_j1
-                                    )
+            fd_resp = self.source._compute_hankel_transform_dlf(
+                        self, direction, bessel_j0, bessel_j1, magnetic
+                        )
 
-        elif self.ht_config["method"] == "qwe":
-            pass
         else:
-            raise NameError
+            raise NameError("hankel transform 'method' must be 'dlf'")
 
         return fd_resp
-            
-
-        
-
-
-
-        
-
-

@@ -2,16 +2,20 @@ import numpy as np
 import scipy
 from scipy import interpolate
 import scipy.signal as ss
-from .filter import load_fft_filter
+from ..dlf.loader import load_sin_cos_filter
 from ..utils.converter import array
 
 def lagged_convolution(model, which, direction, time, signal):
-    base, cos, sin = load_fft_filter('anderson_time_787')
-    # etime
+    """Summary
+    The common ratio of base array {ωt} must be e^0.1 in order to perform lagged convolution.
+    """
+    base, cos, sin = load_sin_cos_filter('anderson_time_787')
+    # 10th root of eular number
     XRE = 1.1051709180756477124
     #   = np.exp(np.float128(1.)) ** np.float128(0.1)
     #   ~ 1.10517091807564762 (anderson original)
-    # cos filterの精度は小数第15位までなので少し桁が多い
+
+    # times from the start point to the end point passage
     etime_size = int(10 * np.log(time[-1] / time[0])) + 2
     etime_init = np.ones(etime_size) * time[0]
     etime_base = np.ones(etime_size) * XRE
@@ -92,13 +96,13 @@ def lagged_convolution(model, which, direction, time, signal):
         ans = ans[0]
     return ans
 
-def interp_fft(model, which, direction, time, signal):
+def fdrift(model, which, direction, time, signal):
 
     fft_filter = model.fft_filter
     time_size = len(time)
     #TODO optimize this
     pts_per_decade = 30
-    base, cos, sin = load_fft_filter(model.fft_filter)
+    base, cos, sin = load_sin_cos_filter(model.fft_filter)
     logfmin = int(np.log10(base[0] / time[-1])) - 2
     logfmax = int(np.log10(base[-1] / time[0])) + 1
     freq_size = (logfmax - logfmin) * pts_per_decade

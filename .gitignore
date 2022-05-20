@@ -4,10 +4,11 @@
 .ipynb_checkpoints
 *.DS_Store
 *.png
+.pypirc
 
 emulatte_zero/
 test/
-debug/
+wlab/
 ex1dem/
 
 # Python Template

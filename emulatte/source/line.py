@@ -77,7 +77,6 @@ class HGW:
             e_x_rot = e_x_rot * self.moment
             e_y_rot = e_y_rot * self.moment
 
-
             if "x" in direction:
                 e_x = model.cos_theta * e_x_rot - model.sin_theta * e_y_rot
                 ans.append(e_x)
