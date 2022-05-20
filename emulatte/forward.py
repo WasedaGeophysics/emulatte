@@ -14,7 +14,6 @@
 
 # -*- coding: utf-8 -*-
 import numpy as np
-from .model.earth import *
 from .model.layered import Earth1DEM
 
 def create_model(thick_or_depth, state = None, stuck = True):
