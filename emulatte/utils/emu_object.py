@@ -13,7 +13,10 @@ class Model(metaclass=ABCMeta):
 
 class Source(metaclass=ABCMeta):
     @abstractmethod
-    def show_config():
+    def _compute_hankel_dlf_e():
+        pass
+    @abstractmethod
+    def _compute_henkel_dlf_m():
         pass
 
 class DataArray(np.ndarray):
@@ -22,4 +25,3 @@ class DataArray(np.ndarray):
         self.meta = meta
         return self
 
-# %%

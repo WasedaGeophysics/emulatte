@@ -13,10 +13,11 @@
 # limitations under the License.
 
 # -*- coding: utf-8 -*-
-
+import numpy as np
 from .model.earth import *
+from .model.layered import Earth1DEM
 
-def create_model(thick, state = None):
+def create_model(thick_or_depth, state = None, stuck = True):
     r"""
     Parameters
     ----------
@@ -26,12 +27,15 @@ def create_model(thick, state = None):
             = 'qs' -> electroquasistatic mode, diplacement current doesn't affect magnetic field.
             = 'ip' -> Pelton()
     """
+    if stuck:
+        depth = [0, *np.cumsum(thick_or_depth)]
+    else:
+        depth = thick_or_depth
+
     if state is None:
-        model = DynamicEM1D(thick)
-    elif state == 'qs':
-        model = QuasiStaticEM1D(thick)
-    elif state == 'ip':
-        model = PeltonIPEM1D(thick)
+        model = Earth1DEM(depth)
+    elif state == 'unsteady':
+        model = Earth1DEM(depth, qss=False)
     else:
         raise Exception
     return model

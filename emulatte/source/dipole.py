@@ -15,291 +15,119 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from ..utils.converter import array, check_waveform
+from numpy.typing import NDArray
+from ..utils.converter import check_waveform
+from ..utils.emu_object import Source
+from .kernel.edipole import *
+from .kernel.mdipole import (
+    compute_kernel_vmd_er,
+    compute_kernel_vmd_hr,
+    compute_kernel_vmd_hz
+)
 
 
-class VMD:
-    def __init__(self, moment, ontime = None):
-        moment = array(moment)
+class VMD(Source):
+    def __init__(self, moment, ontime = None, frequency=None) -> None:
         self.kernel_te_up_sign = 1
         self.kernel_te_down_sign = 1
         self.kernel_tm_up_sign = 0
         self.kernel_tm_down_sign = 0
-        self.signal = check_waveform(ontime)
 
-        if len(moment) == 1:
-            self.moment = moment[0]
-        else:
-            self.moment_array = moment
-
-    def _hankel_transform_e(self, model, direction, omega, y_base, wt0, wt1):
-        model._calc_em_admittion(omega)
-        model._calc_kernel_components(y_base, model.rh)
-        lambda_ = model.lambda_
-        zs = model.admz[:, model.si]
-        rh = model.rh
-        ans = []
-        fetched = False
-        factor = zs / (4 * np.pi * rh)
-        if "x" in direction:
-            kernel = self._calc_kernel_vmd_e(model, lambda_)
-            fetched = True
-            e_x = self.moment * factor * (kernel[0] @ wt1) * model.sin_phi
-            ans.append(e_x)
-        if "y" in direction:
-            if not fetched:
-                kernel = self._calc_kernel_vmd_e(model, lambda_)
-            e_y = self.moment * factor * (kernel[0] @ wt1) * - model.cos_phi
-            ans.append(e_y)
-        if "z" in direction:
-            e_z = np.zeros(model.K)
-            ans.append(e_z)
-        ans = np.array(ans)
-        if model.time_derivative:
-            ans = ans * omega * 1j
-        return ans
+        magnitude = moment
         
-    def _hankel_transform_h(self, model, direction, omega, y_base, wt0, wt1):
-        model._calc_em_admittion(omega)
-        model._calc_kernel_components(y_base, model.rh)
-        lambda_ = model.lambda_
-        zr = model.admz[:, model.ri]
-        zs = model.admz[:, model.si]
-        rh = model.rh
-        ans = []
-        fetched = False
-        factor = 1 / (4 * np.pi * rh) * zs / zr
-        if "x" in direction:
-            kernel = self._calc_kernel_vmd_hr(model, lambda_)
-            fetched = True
-            h_x = self.moment * factor * (kernel[0] @ wt1) * model.cos_phi
-            ans.append(h_x)
-        if "y" in direction:
-            if not fetched:
-                kernel = self._calc_kernel_vmd_hr(model, lambda_)
-            h_y = self.moment * factor * (kernel[0] @ wt1) * model.sin_phi
-            ans.append(h_y)
-        if "z" in direction:
-            kernel = self._calc_kernel_vmd_hz(model, lambda_)
-            h_z = self.moment * factor * (kernel[0] @ wt0)
-            ans.append(h_z)
-        ans = np.array(ans)
-        if model.time_derivative:
-            ans = ans * omega * 1j
-        return ans
+        domain, signal, magnitude, ontime, frequency = \
+            check_waveform(magnitude, ontime, frequency)
 
-    def _calc_kernel_vmd_e(self, model, lambda_):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        kernel = kernel * lambda_ ** 2 / su
-        return kernel
-
-    def _calc_kernel_vmd_hr(self, model, lambda_):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        ru = model.u[:,:,ri]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up - d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel_add = kernel_add * np.sign(rz - sz)
-        kernel = kernel + kernel_add
-        kernel = kernel * lambda_ ** 2 * ru / su
-        return kernel
-
-    def _calc_kernel_vmd_hz(self, model, lambda_):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        kernel = kernel * lambda_ ** 3 / su
-        return kernel
-
-class HMD:
-    def __init__(self, moment, ontime = None):
-        moment = array(moment)
-        self.kernel_te_up_sign = 1
-        self.kernel_te_down_sign = 1
-        self.kernel_tm_up_sign = 0
-        self.kernel_tm_down_sign = 0
-        self.signal = check_waveform(ontime)
-
-        if len(moment) == 1:
-            self.moment = moment[0]
+        self.domain = domain
+        self.signal = signal
+        self.ontime = ontime
+        self.frequency = frequency
+        if domain == "frequency":
+            self.magnitude_f = magnitude
         else:
-            self.moment_array = moment
+            self.magnitude_f = 1
+            self.magnitude_t = magnitude
 
-    def _hankel_transform_e(self, model, direction, omega, y_base, wt0, wt1):
-        model._calc_em_admittion(omega)
-        model._calc_kernel_components(y_base, model.rh)
-        lambda_ = model.lambda_
-        zs = model.admz[:, model.si]
-        rh = model.rh
-        ans = []
-        fetched = False
-        factor = zs / (4 * np.pi * rh)
-        if "x" in direction:
-            kernel = self._calc_kernel_vmd_e(model, lambda_)
-            fetched = True
-            e_x = self.moment * factor * (kernel[0] @ wt1) * model.sin_phi
-            ans.append(e_x)
-        if "y" in direction:
-            if not fetched:
-                kernel = self._calc_kernel_vmd_e(model, lambda_)
-            e_y = self.moment * factor * (kernel[0] @ wt1) * - model.cos_phi
-            ans.append(e_y)
-        if "z" in direction:
-            e_z = np.zeros(model.K)
-            ans.append(e_z)
-        ans = np.array(ans)
-        if model.time_derivative:
-            ans = ans * omega * 1j
-        return ans
+    def _compute_hankel_transform_dlf(
+            self, model, direction, bessel_j0, bessel_j1, magnetic : bool
+            ) -> NDArray:
+        # kernel components
+        si = model.si[0]
+        zs = model.zs[0]
+        ri = model.ri
+        z = model.z
+
+        rho = model.rho[0]
+        lambda_ = model.lambda_[0]
+
+        us = model.u[0,:,si]
+        ur = model.u[0,:,ri]
+
+        impedivity_s = model.impedivity[:, si]
+        impedivity_r = model.impedivity[:, ri]
         
-    def _hankel_transform_h(self, model, direction, omega, y_base, wt0, wt1):
-        model._calc_em_admittion(omega)
-        model._calc_kernel_components(y_base, model.rh)
-        lambda_ = model.lambda_
-        zr = model.admz[:, model.ri]
-        zs = model.admz[:, model.si]
-        rh = model.rh
+        u_te = model.u_te[0]
+        d_te = model.d_te[0]
+        e_up = model.e_up[0]
+        e_down = model.e_down[0]
+
+        sin_phi = model.sin_phi[0]
+        cos_phi = model.cos_phi[0]
+
+        nfreq = model.nfreq
+
         ans = []
-        fetched = False
-        factor = 1 / (4 * np.pi * rh) * zs / zr
-        if "x" in direction:
-            kernel = self._calc_kernel_vmd_h_r(model, lambda_)
-            fetched = True
-            h_x = self.moment * factor * (kernel[0] @ wt1) * model.cos_phi
-            ans.append(h_x)
-        if "y" in direction:
-            if not fetched:
-                kernel = self._calc_kernel_vmd_h_r(model, lambda_)
-            h_y = self.moment * factor * (kernel[0] @ wt1) * model.sin_phi
-            ans.append(h_y)
-        if "z" in direction:
-            kernel = self._calc_kernel_vmd_h_z(model, lambda_)
-            h_z = self.moment * factor * (kernel[0] @ wt0)
-            ans.append(h_z)
+
+        # Electric field E
+        if not magnetic:
+            kernel_er = None
+            if "x" in direction:
+                factor = impedivity_s / (4 * np.pi) * sin_phi
+                kernel_er = compute_kernel_vmd_er(
+                    u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_)
+                e_x = factor * (kernel_er @ bessel_j1) / rho
+                ans.append(e_x)
+            if "y" in direction:
+                if kernel_er is None:
+                    factor = impedivity_s / (4 * np.pi) * -cos_phi
+                    kernel_er = compute_kernel_vmd_er(
+                        u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_)
+                    e_y = factor * (kernel_er @ bessel_j1) / rho
+                else:
+                    # e_xの結果を再利用
+                    e_y = e_x * -cos_phi / sin_phi
+                ans.append(e_y)
+            if "z" in direction:
+                e_z = np.zeros(nfreq)
+                ans.append(e_z)
+        # Magnetic field H
+        else:
+            kernel_hr = None
+            if "x" in direction:
+                factor = cos_phi / (4 * np.pi) * impedivity_s / impedivity_r
+                kernel_hr = compute_kernel_vmd_hr(
+                                        u_te, d_te, e_up, e_down,
+                                        si, ri, us, ur, zs, z, lambda_)
+                h_x = factor * (kernel_hr @ bessel_j1) / rho
+                ans.append(h_x)
+            if "y" in direction:
+                if kernel_hr is None:
+                    factor = sin_phi / (4 * np.pi) * impedivity_s / impedivity_r
+                    kernel_hr = compute_kernel_vmd_hr(
+                                        u_te, d_te, e_up, e_down, 
+                                        si, ri, us, ur, zs, z, lambda_)
+                    h_y = factor * (kernel_hr @ bessel_j1) / rho
+                else:
+                    h_y = h_x * sin_phi / cos_phi
+                ans.append(h_y)
+            if "z" in direction:
+                factor = 1 / (4 * np.pi) * impedivity_s / impedivity_r
+                kernel_hz = compute_kernel_vmd_hz(
+                                        u_te, d_te, e_up, e_down, 
+                                        si, ri, us, zs, z, lambda_)
+                h_z = factor * (kernel_hz @ bessel_j0)
+                ans.append(h_z)
+
         ans = np.array(ans)
-        if model.time_derivative:
-            ans = ans * omega * 1j
+
         return ans
-
-    def _calc_kernel_hmd_tm_er(self, model):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        ru = model.u[:,:,ri]
-        sz = model.sz
-        rz = model.rz
-        kernel = -u_te * e_up + d_te * e_down
-        kernel_add = -np.sign(rz - sz) * int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        kernel = kernel * ru / su
-        return kernel
-
-    def _calc_kernel_hmd_te_er(self, model):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = np.sign(rz - sz) * int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        return kernel
-
-    def _calc_kernel_hmd_tm_ez(self, model):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        kernel = kernel / su
-        return kernel
-
-    def _calc_kernel_hmd_tm_hr(self, model):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        kernel = kernel / su
-        return kernel
-
-    def _calc_kernel_hmd_te_hr(self, model):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        ru = model.u[:,:,ri]
-        sz = model.sz
-        rz = model.rz
-        kernel = -u_te * e_up + d_te * e_down
-        kernel_add = -int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        kernel = kernel * ru
-        return kernel
-
-    def _calc_kernel_hmd_te_hz(self, model):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = np.sign(rz - sz) * int(si==ri) * np.exp(- su * abs(rz - sz))
-        kernel = kernel + kernel_add
-        return kernel
