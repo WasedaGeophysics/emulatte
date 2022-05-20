@@ -6,13 +6,13 @@ def is_scalar(obj : object) -> bool:
     return result
 
 def check_waveform(magnitude, ontime, frequency):
-    # sourceの入力処理
+    size = len(magnitude)
     if ontime is None:
         domain = "frequency"
-        if is_scalar(magnitude):
+        if size == 1:
             signal = "constant"
-            magnitude = complex(magnitude)
-        elif len(magnitude) == len(frequency):
+            magnitude = complex(magnitude[0])
+        elif size == len(frequency):
             signal = "specific"
             magnitude = np.array(magnitude, dtype=complex)
             frequency = np.array(frequency, dtype=float)
@@ -21,24 +21,26 @@ def check_waveform(magnitude, ontime, frequency):
 
     elif frequency is None:
         domain = "time"
-        if type(magnitude) in {float, int}:
+        if size == 1:
             signal = "default"
-            magnitude = float(magnitude)
+            magnitude = magnitude.astype(float)
             if ontime == 1:
                 signal = "stepon"
             elif ontime == 0:
                 signal = "impulse"
             elif ontime == -1:
                 signal = "stepoff"
-        elif (len(magnitude) == len(ontime)) \
+            else:
+                raise Exception(ValueError)
+        elif (size == len(ontime)) \
                 & (magnitude[0] == magnitude[-1] == 0) \
                 & len(ontime) > 2:
             signal = "arbitrary"
-            magnitude = np.array(magnitude, dtype=float)
+            magnitude = magnitude.astype(float)
             ontime = np.array(ontime, dtype=float)
         else:
             raise Exception(ValueError)
     else:
-        raise Exception("cannot recognize domain. Please make sure source's \
-                         ontime or frequency is None")
+        raise Exception(("cannot recognize domain. Please make sure source's"
+                         "ontime or frequency is None"))
     return domain, signal, magnitude, ontime, frequency

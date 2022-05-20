@@ -2,7 +2,7 @@ import numpy as np
 import scipy.constants as const
 from numba import jit
 
-def _compute_wavenumber(res, rep, rmp, omega, qss):
+def compute_wavenumber(res, rep, rmp, omega, qss):
     # 2D array (nfreq, nlayer)
     cond = 1 / res
     eperm = rep * const.epsilon_0
@@ -23,14 +23,14 @@ def _compute_wavenumber(res, rep, rmp, omega, qss):
 
     return admittivity, impedivity, k, nfreq
 
-def _compute_lambda(ybase_phase, rho):
+def compute_lambda(ybase_phase, rho):
     r"""
     
     """
     lambda_ = ybase_phase.reshape(1,-1) / rho.reshape(-1,1)
     return lambda_
 
-def _compute_u(lambda_, k, size):
+def compute_u(lambda_, k, size):
     # for multiple dipole
     # calculate 4d tensor u = lambda**2 - k**2
     # lambda_ : (ndipole, nphase)
@@ -45,8 +45,8 @@ def _compute_u(lambda_, k, size):
     u = np.sqrt(lambda_tensor ** 2 - k_tensor ** 2)
     return u
 
-def _compute_up_down_damping(
-        thick_all, depth, zs_array, z, si_array, ri, size, u, 
+def compute_up_down_damping(
+        thick_all, depth, zs, z, si, ri, size, u, 
         admittivity, impedivity, te_dsign, tm_dsign, te_usign, tm_usign
         ):
     
@@ -59,12 +59,12 @@ def _compute_up_down_damping(
 
     si_previous = -1
 
-    tf_array = zs_array / zs[0] != np.oneslike(zs)
+    tf_array = (zs / zs[0]) != np.ones_like(zs)
     horizontal_order = not np.any(tf_array)
 
     if horizontal_order:
-        si = si_array[0]
-        zs = zs_array[0]
+        si = si[0]
+        zs = zs[0]
 
         dr_te, dr_tm, ur_te, ur_tm, yuc, zuc = _compute_reflection(
                 si, jj, kk, ll, mm, u, thick_all, admy, admz
@@ -84,10 +84,10 @@ def _compute_up_down_damping(
     return u_te[:,:,ri], d_te[:,:,ri], u_tm[:,:,ri], d_tm[:,:,ri], e_up, e_down
 
 # for multi dipole
-@jit(("Tuple(c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
-            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :])"
-     "(i8, i8, i8, i8, i8, c16[:, :, :, :], f8[:], c16[:, :], c16[:, :])"), 
-     nopython = True)
+#@jit(("Tuple(c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
+#            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :])"
+#     "(i8, i8, i8, i8, i8, c16[:, :, :, :], f8[:], c16[:, :], c16[:, :])"), 
+#     nopython = True)
 def _compute_reflection(si, jj, kk, ll, mm, u, thick_all, admy, impz):
     # yuc := yuc, zuc := zuc (uc : uppercase)
     tensor_thick = np.zeros((jj, kk, mm, ll), dtype=complex)
@@ -173,16 +173,16 @@ def _compute_reflection(si, jj, kk, ll, mm, u, thick_all, admy, impz):
 
     return dr_te, dr_tm, ur_te, ur_tm, yuc, zuc
 
-@jit((
-    "Tuple("
-        "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :],"
-        "("
-            "i8, i8, i8, i8, i8, i8, f8, f8[:], c16[:, :, :, :]"
-            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
-            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
-            "i8, i8, i8, i8"
-        ")"
-    ), nopython=True)
+#@jit((
+#    "Tuple("
+#        "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :],"
+#        "("
+#            "i8, i8, i8, i8, i8, i8, f8, f8[:], c16[:, :, :, :]"
+#            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
+#            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
+#            "i8, i8, i8, i8"
+#        ")"
+#    ), nopython=True)
 def _compute_damping_coef(
         jj, kk, ll, mm, si, ri, zs, depth, u,
         dr_te, dr_tm, ur_te, ur_tm, yuc, zuc,

@@ -15,130 +15,123 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy
-from ..utils.converter import array, check_waveform
+from numpy.typing import NDArray
+from ..utils.converter import check_waveform
+from ..utils.emu_object import Source
+from .kernel.edipole import *
+from .kernel.mdipole import (
+    compute_kernel_loop_e_r,
+    compute_kernel_loop_h_r,
+    compute_kernel_loop_h_z
+)
 
 
-class HCL:
+class CircularLoop(Source):
     def __init__(self, current, radius, turns = 1, ontime = None):
-        current = array(current)
-        moment = current * turns
+        current = np.array(current, ndmin=1, dtype=complex)
+        self.current = current
         self.radius = radius
         self.turns = turns
+        self.area = np.pi * self.radius ** 2
+
         self.kernel_te_up_sign = 1
         self.kernel_te_down_sign = 1
         self.kernel_tm_up_sign = 0
         self.kernel_tm_down_sign = 0
 
-        self.signal = check_waveform(ontime)
-        self.mode = "TE"
+        magnitude = current
 
-        if len(current) == 1:
-            self.moment = moment[0]
+        domain, signal, magnitude, ontime, frequency = \
+            check_waveform(magnitude, ontime, frequency)
+
+        self.domain = domain
+        self.signal = signal
+        self.ontime = ontime
+        self.frequency = frequency
+        if domain == "frequency":
+            self.magnitude_f = magnitude
         else:
-            self.moment_time = moment
+            self.magnitude_f = 1
+            self.magnitude_t = magnitude
 
-    def _hankel_transform_e(self, model, direction, omega, y_base, wt0, wt1):
-        model._calc_em_admittion(omega)
-        model._calc_kernel_components(y_base, self.radius)
-        lambda_ = model.lambda_
-        zs = model.admz[:, model.si]
-        ans = []
-        factor = zs / 2
-        kernel_fetched = False
-        if "x" in direction:
-            kernel = self._calc_kernel_loop_e(model, lambda_)
-            kernel_fetched = True
-            e_x = self.moment * factor * (kernel[0] @ wt1) * model.sin_phi
-            ans.append(e_x)
-        if "y" in direction:
-            if not kernel_fetched:
-                kernel = self._calc_kernel_loop_e(model, lambda_)
-            e_y = self.moment * factor * (kernel[0] @ wt1) * - model.cos_phi
-            ans.append(e_y)
-        if "z" in direction:
-            e_z = np.zeros(model.K)
-            ans.append(e_z)
-        ans = np.array(ans)
-        if model.time_derivative:
-            ans = ans * omega * 1j
-        return ans
+    def _compute_hankel_transform_dlf(
+            self, model, direction, bessel_j0, bessel_j1, magnetic : bool):
+        si = model.si[0]
+        zs = model.zs[0]
+        ri = model.ri
+        z = model.z
+
+        rho = model.rho[0]
+        lambda_ = model.lambda_[0]
+
+        us = model.u[0,:,si]
+        ur = model.u[0,:,ri]
+
+        impedivity_s = model.impedivity[:, si]
+        impedivity_r = model.impedivity[:, ri]
         
-    def _hankel_transform_h(self, model, direction, omega, y_base, wt0, wt1):
-        model._calc_em_admittion(omega)
-        model._calc_kernel_components(y_base, self.radius)
-        lambda_ = model.lambda_
-        zr = model.admz[:, model.ri]
-        zs = model.admz[:, model.si]
+        u_te = model.u_te[0]
+        d_te = model.d_te[0]
+        e_up = model.e_up[0]
+        e_down = model.e_down[0]
+
+        sin_phi = model.sin_phi[0]
+        cos_phi = model.cos_phi[0]
+
+        nfreq = model.nfreq
+
         ans = []
-        factor =  zs / zr / 2
-        if "x" in direction:
-            kernel = self._calc_kernel_loop_h_r(model, lambda_)
-            h_x = self.moment * factor * (kernel[0] @ wt1) * - model.cos_phi
-            ans.append(h_x)
-        if "y" in direction:
-            kernel = self._calc_kernel_loop_h_r(model, lambda_)
-            h_y = self.moment * factor * (kernel[0] @ wt1) * - model.sin_phi
-            ans.append(h_y)
-        if "z" in direction:
-            kernel = self._calc_kernel_loop_h_z(model, lambda_)
-            h_z = self.moment * factor * (kernel[0] @ wt1)
-            ans.append(h_z)
+        
+        if not magnetic:
+            kernel_er = None
+            if "x" in direction:
+                factor = impedivity_s * self.radius * sin_phi / 2
+                kernel_e_r = compute_kernel_loop_e_r(
+                    u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_, rho)
+                e_x = factor * (kernel_e_r @ bessel_j1) / rho
+                ans.append(e_x)
+            if "y" in direction:
+                if kernel_e_r is None:
+                    factor = impedivity_s * self.radius * -cos_phi / 2
+                    kernel_e_r = compute_kernel_loop_e_r(
+                                        u_te, d_te, e_up, e_down, 
+                                        si, ri, us, zs, z, lambda_, rho)
+                    e_y = factor * (kernel_e_r @ bessel_j1) / rho
+                else:
+                    e_y = e_x * -cos_phi / sin_phi
+                ans.append(e_y)
+            if "z" in direction:
+                e_z = np.zeros(nfreq)
+                ans.append(e_z)
+        
+        else:
+            kernel_h_r = None
+            if "x" in direction:
+                factor = self.radius * -cos_phi / 2
+                factor = factor * impedivity_s / impedivity_r
+                kernel_h_r = compute_kernel_loop_h_r(
+                                        u_te, d_te, e_up, e_down,
+                                        si, ri, us, ur, zs, z, lambda_, rho)
+                h_x = factor * (kernel_h_r @ bessel_j1) / rho
+                ans.append(h_x)
+            if "y" in direction:
+                if kernel_h_r is None:
+                    factor = self.radius * -sin_phi / 2
+                    factor = factor * impedivity_s / impedivity_r
+                    kernel_h_r = compute_kernel_loop_h_r(
+                                        u_te, d_te, e_up, e_down,
+                                        si, ri, us, ur, zs, z, lambda_, rho)
+                    h_y = factor * (kernel_h_r @ bessel_j1) / rho
+                else:
+                    h_y = h_x * sin_phi / cos_phi
+                ans.append(h_y)
+            if "z" in direction:
+                factor = self.radius / 2 * impedivity_s / impedivity_r
+                kernel_h_z = compute_kernel_loop_h_z(
+                                        u_te, d_te, e_up, e_down, 
+                                        si, ri, us, zs, z, lambda_, rho)
+                h_z = factor * (kernel_h_z @ bessel_j1)
+                ans.append(h_z)
+
         ans = np.array(ans)
-        if model.time_derivative:
-            ans = ans * omega * 1j
         return ans
-
-    def _calc_kernel_loop_e(self, model, lambda_):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(sz - rz))
-        kernel = kernel + kernel_add
-        bessel = scipy.special.jn(1, lambda_ * model.rh)
-        kernel = kernel * lambda_ * lambda_ / su * bessel
-        return kernel
-
-    def _calc_kernel_loop_h_r(self, model, lambda_):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        ru = model.u[:,:,ri]
-        sz = model.sz
-        rz = model.rz
-        kernel = -u_te * e_up + d_te * e_down
-        kernel_add = - int(si==ri) * np.exp(- su * abs(sz - rz))
-        kernel_add = kernel_add * np.sign(rz - sz)
-        kernel = kernel + kernel_add
-        bessel = scipy.special.jn(1, lambda_ * model.rh)
-        kernel = kernel * lambda_ * ru / su * bessel
-        return kernel
-
-    def _calc_kernel_loop_h_z(self, model, lambda_):
-        u_te = model.u_te
-        d_te = model.d_te
-        e_up = model.e_up
-        e_down = model.e_down
-        si = model.si
-        ri = model.ri
-        su = model.u[:,:,si]
-        sz = model.sz
-        rz = model.rz
-        kernel = u_te * e_up + d_te * e_down
-        kernel_add = int(si==ri) * np.exp(- su * abs(sz - rz))
-        kernel = kernel + kernel_add
-        bessel = scipy.special.jn(0, lambda_ * model.rh)
-        kernel = kernel * lambda_ * lambda_ / su * bessel
-        return kernel
-

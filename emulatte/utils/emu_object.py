@@ -8,15 +8,12 @@ from numpy.typing import NDArray, ArrayLike
 
 class Model(metaclass=ABCMeta):
     @abstractmethod
-    def show_params():
+    def set_params():
         pass
 
 class Source(metaclass=ABCMeta):
     @abstractmethod
-    def _compute_hankel_dlf_e():
-        pass
-    @abstractmethod
-    def _compute_henkel_dlf_m():
+    def _compute_hankel_transform_dlf():
         pass
 
 class DataArray(np.ndarray):

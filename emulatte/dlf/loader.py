@@ -16,21 +16,32 @@
 """
 hankelフィルター係数のロード
 """
-from .sin_cos_filter import anderson_801, anderson_time_787, key_201, key_time_201
-from .hankel_filter import kong_241, mizunaga_90, raito_time_250, werthmuller_201, werthmuller_time_201
+from .sin_cos_filter import (
+    anderson_time_787, 
+    key_time_201, 
+    raito_time_250,
+    werthmuller_time_201
+)
+from .hankel_filter import (
+    kong_241,
+    mizunaga_90, 
+    anderson_801,
+    werthmuller_201,
+    key_201
+)
 
 
 # function for load hankel filter
 def load_hankel_filter(hankel_filter_name):
-    if hankel_filter_name == "anderson801":
+    if hankel_filter_name == "anderson_801":
         base, j0, j1 = load_anderson_801()
-    elif hankel_filter_name == "kong241":
+    elif hankel_filter_name == "kong_241":
         base, j0, j1 = load_kong_241()
-    elif hankel_filter_name == "mizunaga90":
+    elif hankel_filter_name == "mizunaga_90":
         base, j0, j1 = load_mizunaga_90()
-    elif hankel_filter_name == "werthmuller201":
+    elif hankel_filter_name == "werthmuller_201":
         base, j0, j1 = load_werthmuller_201()
-    elif hankel_filter_name == "key201":
+    elif hankel_filter_name == "key_201":
         base, j0, j1 = load_key_201()
     else:
         raise NameError('invalid hankel filter name')

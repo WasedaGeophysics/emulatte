@@ -29,13 +29,13 @@ def organize(model):
             zs = zs - 1e-8
 
         # in which layer source & measurement points exist
-        si_list = _get_layer_index(zs, model.depth)
+        si = _get_layer_index(zs, model.depth)
         ri = _get_layer_index(z, model.depth)
 
         # return values to model
         model.xs, model.ys, model.zs = xs, ys, zs
         model.x, model.y, model.z = x, y, z
-        model.si_list, model.ri = si_list, ri
+        model.si, model.ri = si, ri
         model.rho, model.cos_phi, model.sin_phi = rho, cos_phi, sin_phi
 
     elif model.source_name in hpts_source:

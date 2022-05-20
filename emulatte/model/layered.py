@@ -322,9 +322,9 @@ class Earth1DEM(Model):
         # ソースの周波数と測定周波数の一致
         pass
 
-    def _conpute_fdem_responce(self, direction, omega, magnetic = False):
+    def _compute_fdem_responce(self, direction, omega, magnetic = False):
         # compute admittivity, impedivity, wavenumber in each layer
-        admittivity, impedivity, k, nfreq = coef._compute_wavenumber(
+        admittivity, impedivity, k, nfreq = coef.compute_wavenumber(
             self.resistivity, self.rel_e_permittivity, self.rel_m_peameability,
             self.omega, self.qss
         )
@@ -349,7 +349,7 @@ class Earth1DEM(Model):
             self.nphase = len(ybase_phase)
             self.size4d = (self.ndipole, self.nfreq, self.nlayer, self.nphase)
             self.lambda_ = coef.compute_lambda(ybase_phase, self.rho)
-            self.u = coef._compute_u(self.lambda_, self.k, self.size4d)
+            self.u = coef.compute_u(self.lambda_, self.k, self.size4d)
 
             te_dsign = self.source.kernel_te_down_sign
             tm_dsign = self.source.kernel_tm_down_sign
