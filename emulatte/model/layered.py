@@ -114,7 +114,7 @@ class Earth1DEM(Model):
         rmp = np.ones(self.nstrata) if rmp is None else \
               np.array(rmp, dtype=float)
 
-        res = np.append(1e31, res)
+        res = np.append(2e14, res)
         rep = np.append(1, rep)
         rmp = np.append(1, rmp)
         
@@ -174,7 +174,8 @@ class Earth1DEM(Model):
             hankel_dlf : str | dict = "key_201", 
             fourier_sin_cos_dlf : str | dict = "key_time_201"
             ) -> None:
-        pass
+        self.ht_config["filter"] = hankel_dlf
+        self.ft_config["filter"] = fourier_sin_cos_dlf
 
     def fdem(
             self,
@@ -257,6 +258,8 @@ class Earth1DEM(Model):
             data = data * 1.j * omega
 
         data = DataArray(data)
+        if data.shape[0] == 1:
+            data = data[0]
         return data
 
     def tdem(

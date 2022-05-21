@@ -1,5 +1,5 @@
 from .dipole import *
 from .loop import *
-#from .line import *
+from .line import *
 
-__available__ = [VMD, CircularLoop]
+__available__ = [VMD, VED, HMD, HED, CircularLoop]

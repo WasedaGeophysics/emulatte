@@ -9,11 +9,6 @@ def fdem_plot(freq, data):
     ax = fig.add_subplot(111)
     cc = ["#5bf", "#07b"]
 
-    ymax = max(data.real.max(), (-data.real).max(), data.imag.max(), (-data.imag).max())
-
-    ylim_max = 10 ** (np.floor(np.log10(ymax)) + 1)
-    ylim_min = ylim_max * 1e-6
-
     ax.loglog(freq, data.real, c=cc[0], linestyle="-")
     ax.loglog(freq, -data.real, c=cc[0], linestyle=":")
     ax.loglog(freq, data.imag, c=cc[1], linestyle="-")

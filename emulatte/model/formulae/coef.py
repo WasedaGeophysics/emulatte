@@ -14,7 +14,6 @@ def compute_wavenumber(res, rep, rmp, omega, qss):
     if qss:
         admittivity = np.ones((nfreq, 1)) @ cond.reshape(1,-1)
         admittivity = admittivity.astype(complex)
-        admittivity[:, 0] = 1e-31
     else:
         admittivity = cond.reshape(1,-1) \
                         + 1j * omega.reshape(-1,1) @ eperm.reshape(1,-1)
@@ -56,8 +55,6 @@ def compute_up_down_damping(
     mm = size[3] # number of phase (lambda*rho)
     admy = admittivity
     admz = impedivity
-
-    si_previous = -1
 
     tf_array = (zs / zs[0]) != np.ones_like(zs)
     horizontal_order = not np.any(tf_array)

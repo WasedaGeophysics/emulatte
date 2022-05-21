@@ -134,5 +134,5 @@ class CircularLoop(Source):
                 h_z = factor * (kernel_h_z @ bessel_j1) / rad
                 ans.append(h_z)
 
-        ans = np.array(ans)
+        ans = np.array(ans) * self.turns
         return ans

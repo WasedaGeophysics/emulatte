@@ -1,100 +1,91 @@
 import numpy as np
 
-def _calc_kernel_hed_tm_er(model):
-    u_tm = model.u_tm
-    d_tm = model.d_tm
-    e_up = model.e_up
-    e_down = model.e_down
-    si = model.si
-    ri = model.ri
-    su = model.u[:,:,si]
-    ru = model.u[:,:,ri]
-    sz = model.sz
-    rz = model.rz
+# VED ========================================================================\
+
+def compute_kernel_ved_e_phi(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
+    kernel = - u_tm * e_up + d_tm * e_down
+    kernel_add = - int(si==ri) * np.sign(z-zs) * np.exp(-us * abs(z - zs))
+    kernel = kernel + kernel_add
+    kernel = kernel * lambda_ ** 2 * ur / us
+    return kernel
+
+def compute_kernel_ved_e_z(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
+    kernel = u_tm * e_up + d_tm * e_down
+    kernel_add = int(si==ri) * np.exp(-us * abs(z - zs))
+    kernel = kernel + kernel_add
+    kernel = kernel * lambda_ ** 3 / us
+    return kernel
+
+def compute_kernel_ved_h_r(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
+    kernel = u_tm * e_up + d_tm * e_down
+    kernel_add = int(si==ri) * np.exp(-us * abs(z - zs))
+    kernel = kernel + kernel_add
+    kernel = kernel * lambda_ ** 2 / us
+    return kernel
+
+# HED ========================================================================\
+
+def compute_kernel_hed_e_r_tm(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
     kernel = -u_tm * e_up + d_tm * e_down
-    kernel_add = - int(si==ri) * np.exp(- su * abs(rz - sz))
+    kernel_add = - int(si==ri) * np.exp(- us * abs(z - zs))
     kernel = kernel + kernel_add
-    kernel = kernel * ru
+    kernel = kernel * ur
+    kernel0 = kernel * lambda_
+    kernel1 = kernel
+    kernel = [kernel0, kernel1]
     return kernel
 
-def _calc_kernel_hed_te_er(model):
-    u_te = model.u_te
-    d_te = model.d_te
-    e_up = model.e_up
-    e_down = model.e_down
-    si = model.si
-    ri = model.ri
-    su = model.u[:,:,si]
-    sz = model.sz
-    rz = model.rz
+def compute_kernel_hed_e_r_te(
+        u_te, d_te, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
     kernel = u_te * e_up + d_te * e_down
-    kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
+    kernel_add = int(si==ri) * np.exp(- us * abs(z - zs))
     kernel = kernel + kernel_add
-    kernel = kernel / su
+    kernel = kernel / us
+    kernel0 = kernel * lambda_
+    kernel1 = kernel
+    kernel = [kernel0, kernel1]
     return kernel
 
-def _calc_kernel_hed_tm_ez(model):
-    u_tm = model.u_tm
-    d_tm = model.d_tm
-    e_up = model.e_up
-    e_down = model.e_down
-    si = model.si
-    ri = model.ri
-    su = model.u[:,:,si]
-    ru = model.u[:,:,ri]
-    sz = model.sz
-    rz = model.rz
+def compute_kernel_hed_e_z_tm(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
     kernel = u_tm * e_up + d_tm * e_down
-    kernel_add = (1 - int(sz - 1e-2 == rz)) * int(si==ri) * np.exp(- su * abs(rz - sz))
-    kernel_add = kernel_add * np.sign(rz - sz)
+    # TODO w1demの仕様をそのまま移植した場合（なぜ？）
+    # kernel_add = (1 - int(zs - 1e-2 == z)) * int(si==ri) * np.exp(- us * abs(z - zs))
+    # kernel_add = kernel_add * np.sign(z - zs)
+    kernel_add = int(si==ri) * np.sign(z - zs) * np.exp(- us * abs(z - zs))
     kernel = kernel + kernel_add
+    kernel = kernel * lambda_ ** 2
     return kernel
 
-def _calc_kernel_hed_tm_hr(model):
-    u_tm = model.u_tm
-    d_tm = model.d_tm
-    e_up = model.e_up
-    e_down = model.e_down
-    si = model.si
-    ri = model.ri
-    su = model.u[:,:,si]
-    ru = model.u[:,:,ri]
-    sz = model.sz
-    rz = model.rz
+def compute_kernel_hed_h_r_tm(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
     kernel = u_tm * e_up + d_tm * e_down
-    kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz)) * np.sign(rz - sz)
+    kernel_add = int(si==ri) * np.exp(- us * abs(z - zs)) * np.sign(z - zs)
     kernel = kernel + kernel_add
+    kernel0 = kernel * lambda_
+    kernel1 = kernel
+    kernel = [kernel0, kernel1]
     return kernel
 
-def _calc_kernel_hed_te_hr(model):
-    u_te = model.u_te
-    d_te = model.d_te
-    e_up = model.e_up
-    e_down = model.e_down
-    si = model.si
-    ri = model.ri
-    su = model.u[:,:,si]
-    ru = model.u[:,:,ri]
-    sz = model.sz
-    rz = model.rz
+def compute_kernel_hed_h_r_te(
+        u_te, d_te, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
     kernel = -u_te * e_up + d_te * e_down
-    kernel_add = - int(si==ri) * np.exp(- su * abs(rz - sz)) * np.sign(rz - sz)
+    kernel_add = - int(si==ri) * np.exp(- us * abs(z - zs)) * np.sign(z - zs)
     kernel = kernel + kernel_add
-    kernel = kernel * ru / su
+    kernel = kernel * ur / us
+    kernel0 = kernel * lambda_
+    kernel1 = kernel
+    kernel = [kernel0, kernel1]
     return kernel
 
-def _calc_kernel_hed_te_hz(model):
-    u_te = model.u_te
-    d_te = model.d_te
-    e_up = model.e_up
-    e_down = model.e_down
-    si = model.si
-    ri = model.ri
-    su = model.u[:,:,si]
-    sz = model.sz
-    rz = model.rz
+def compute_kernel_hed_h_z_te(
+        u_te, d_te, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
     kernel = u_te * e_up + d_te * e_down
-    kernel_add = int(si==ri) * np.exp(- su * abs(rz - sz))
+    kernel_add = int(si==ri) * np.exp(- us * abs(z - zs))
     kernel = kernel + kernel_add
-    kernel = kernel / su
+    kernel = kernel * lambda_ ** 2 / us
     return kernel

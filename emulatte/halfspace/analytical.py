@@ -1,3 +1,4 @@
+
 import numpy as np
 from scipy.special import erf, iv, kv
 from scipy.constants import mu_0
@@ -122,18 +123,6 @@ class SurfaceVMD:
         return dhzdt
 
 
-class Surface:
-    def __init__(self, res, xy):
-        self.res = res
-        self.x = xy[0]
-        self.y = xy[1]
-        self.r = np.sqrt(xy[0]**2, xy[1]**2)
-        self.cos_phi = self.x / self.r
-        self.sin_phi = self.y / self.r
-
-    
-
-
 class SurfaceCircularLoop:
     def __init__(self, res, radius):
         self.res = res
@@ -166,3 +155,119 @@ class SurfaceCircularLoop:
         dhzdt *= (3 * erf(theta_r) - 2 / np.sqrt(np.pi) * theta_r * (3 + 2 * theta_r**2) * np.exp(-theta_r**2))
         # ?：なぜか符号が逆転してしまう
         return -dhzdt
+
+class SurfaceHMDx:
+    def __init__(self, res, xy):
+        self.res = res
+        self.x = xy[0]
+        self.y = xy[1]
+        self.r = np.sqrt(xy[0]**2 + xy[1]**2)
+
+    def fdem_hx(self, freq, m=1.):
+        r = self.r
+        x = self.x
+        y = self.y
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+        phi = 2 / (k ** 2 * r ** 4)
+        phi *= 3 + k ** 2 * r ** 2 - (3 + 3.j * k * r - k ** 2 * r ** 2) * np.exp(-1j * k * r)
+        dpdr = 2 / (k ** 2 * r ** 5)
+        dpdr *= -2 * k ** 2 * r ** 2 - 12 \
+            + (-1j * k ** 3 * r ** 3 - 5 * k ** 2 * r ** 2 + 12j * k * r + 12)\
+            * np.exp(-1j * k * r)
+        h_x = - m / (4 * np.pi * r ** 3)
+        h_x *= (y ** 2 * phi + x ** 2 * r * dpdr)
+        return h_x
+
+    def fdem_hy(self, freq, m=1.):
+        r = self.r
+        x = self.x
+        y = self.y
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+        phi = 2 / (k ** 2 * r ** 4)
+        phi *= 3 + k ** 2 * r ** 2 - (3 + 3.j * k * r - k ** 2 * r ** 2) * np.exp(-1j * k * r)
+        dpdr = 2 / (k ** 2 * r ** 5)
+        dpdr *= -2 * k ** 2 * r ** 2 - 12 \
+            + (-1j * k ** 3 * r ** 3 - 5 * k ** 2 * r ** 2 + 12j * k * r + 12)\
+            * np.exp(-1j * k * r)
+        h_y = m / (4 * np.pi * r ** 3)
+        h_y *= (x * y * phi - x * y * r * dpdr)
+        return h_y
+
+    def fdem_hz(self, freq, m=1.):
+        r = self.r
+        x = self.x
+        y = self.y
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+        arg = 1.j * k * r / 2
+        h_z = m * k ** 2 * x / (4 * np.pi * r ** 2)
+        h_z *=  iv(1, arg) * kv(1, arg) - iv(2, arg) * kv(2, arg)
+        return h_z
+
+class SurfaceHEDx:
+    def __init__(self, res, xy, length):
+        self.res = res
+        self.x = xy[0]
+        self.y = xy[1]
+        self.r = np.sqrt(xy[0]**2 + xy[1]**2)
+        self.ds = length
+
+    def fdem_e_x(self, freq, current=1.):
+        r = self.r
+        x = self.x
+        y = self.y
+        ds = self.ds
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+        e_x = current * ds / (2 * np.pi * sigma * r ** 3)
+        e_x *= -2 + (1j * k * r + 1) * np.exp(-1j * k * r) + 3 * x ** 2 / (r ** 2)
+        return e_x
+
+    def fdem_hx(self, freq, current=1.):
+        r = self.r
+        x = self.x
+        y = self.y
+        ds = self.ds
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+        h_x = current * ds * x * y / (4 * np.pi * r ** 4)
+
+        arg = 1.j * k * r / 2
+        h_x *=  1j * k * r * (iv(0, arg) * kv(1, arg) - iv(1, arg) * kv(0, arg))\
+                - 8 * iv(1, arg) * kv(1, arg)
+        return h_x
+
+    def fdem_hy(self, freq, current=1.):
+        r = self.r
+        x = self.x
+        ds = self.ds
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+
+        h_y = -current * ds / (4 * np.pi * r ** 2)
+        arg = 1.j * k * r / 2
+        ikrl = 1j*k*r * (iv(1,arg)*kv(0,arg) - iv(0,arg)*kv(1,arg) - 8*iv(1,arg)*kv(1,arg))
+        h_y *=  6*iv(1,arg)*kv(1,arg) \
+                + 1j*k*r * (iv(1,arg)*k(0,arg) - iv(0,arg)*kv(1,arg)) \
+                + (x/r)**2 * ikrl
+        return h_y
+
+    def fdem_hz(self, freq, current=1.):
+        r = self.r
+        x = self.x
+        y = self.y
+        ds = self.ds
+        sigma = 1 / self.res
+        omega = freq * 2 * np.pi
+        k = np.sqrt(-1j * mu_0 * sigma * omega)
+        h_z = - current * ds * y / (2 * np.pi * k ** 2 * r ** 5)
+        h_z *= 3 - (3 + 3j * k * r - k ** 2 * r ** 2) * np.exp(-1j * k * r)
+        return h_z
