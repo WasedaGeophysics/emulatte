@@ -27,7 +27,7 @@ from .kernel.mdipole import (
 
 
 class CircularLoop(Source):
-    def __init__(self, current, radius, turns = 1, ontime = None):
+    def __init__(self, current, radius, turns = 1, ontime = None, frequency = None):
         current = np.array(current, ndmin=1, dtype=complex)
         self.current = current
         self.radius = radius
@@ -79,6 +79,7 @@ class CircularLoop(Source):
         cos_phi = model.cos_phi[0]
 
         nfreq = model.nfreq
+        rad = self.radius
 
         ans = []
         
@@ -129,8 +130,9 @@ class CircularLoop(Source):
                 factor = self.radius / 2 * impedivity_s / impedivity_r
                 kernel_h_z = compute_kernel_loop_h_z(
                                         u_te, d_te, e_up, e_down, 
-                                        si, ri, us, zs, z, lambda_, rho)
-                h_z = factor * (kernel_h_z @ bessel_j1)
+                                        si, ri, us, zs, z, lambda_, rad)
+                h_z = factor * (kernel_h_z @ bessel_j0) / rho
+                print(factor, (kernel_h_z @ bessel_j0) , rho)
                 ans.append(h_z)
 
         ans = np.array(ans)

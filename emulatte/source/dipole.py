@@ -128,7 +128,7 @@ class VMD(Source):
                 kernel_h_z = compute_kernel_vmd_h_z(
                                         u_te, d_te, e_up, e_down, 
                                         si, ri, us, zs, z, lambda_)
-                h_z = factor * (kernel_h_z @ bessel_j0)
+                h_z = factor * (kernel_h_z @ bessel_j0) / rho
                 ans.append(h_z)
 
         ans = np.array(ans)

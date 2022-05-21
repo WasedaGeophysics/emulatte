@@ -16,7 +16,7 @@ def organize(model):
         # horzontal distance between source & measurement point
         rho = ((xs-x) ** 2 + (ys-y) ** 2) ** 0.5
         if rho == 0:
-            rho = 1e-8
+            rho = np.array([1e-4])
 
         # azimuth of measurement point from source
         cos_phi = (x - xs) / rho
