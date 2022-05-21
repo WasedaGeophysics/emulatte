@@ -45,11 +45,11 @@ def compute_kernel_loop_h_r(
     return kernel
 
 def compute_kernel_loop_h_z(
-        u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_, radius):
+        u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_, rho):
     kernel = u_te * e_up + d_te * e_down
     kernel_add = int(si==ri) * np.exp(- us * abs(z - zs))
     kernel = kernel + kernel_add
-    bessel = j1(lambda_ * radius)
+    bessel = j0(lambda_ * rho)
     kernel = kernel * lambda_ * lambda_ / us * bessel
     return kernel
 

@@ -348,7 +348,7 @@ class Earth1DEM(Model):
             # compute wavenumber u
             self.nphase = len(ybase_phase)
             self.size4d = (self.ndipole, self.nfreq, self.nlayer, self.nphase)
-            self.lambda_ = coef.compute_lambda(ybase_phase, self.rho)
+            self.lambda_ = coef.compute_lambda(ybase_phase, self.divisor)
             self.u = coef.compute_u(self.lambda_, self.k, self.size4d)
 
             te_dsign = self.source.kernel_te_down_sign

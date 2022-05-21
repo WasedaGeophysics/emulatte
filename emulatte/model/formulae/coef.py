@@ -23,11 +23,11 @@ def compute_wavenumber(res, rep, rmp, omega, qss):
 
     return admittivity, impedivity, k, nfreq
 
-def compute_lambda(ybase_phase, rho):
+def compute_lambda(ybase_phase, divisor):
     r"""
     
     """
-    lambda_ = ybase_phase.reshape(1,-1) / rho.reshape(-1,1)
+    lambda_ = ybase_phase.reshape(1,-1) / divisor.reshape(-1,1)
     return lambda_
 
 def compute_u(lambda_, k, size):

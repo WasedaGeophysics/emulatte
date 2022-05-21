@@ -7,7 +7,7 @@ def organize(model):
         layer_index = np.count_nonzero(is_above, axis=0)
         return layer_index
 
-    vpts_source = ["VMD", "VED", "CircularLoop"]
+    vpts_source = ["VMD", "VED"]
     hpts_source = ["HMD", "HED"]
 
     if model.source_name in vpts_source:
@@ -37,6 +37,7 @@ def organize(model):
         model.x, model.y, model.z = x, y, z
         model.si, model.ri = si, ri
         model.rho, model.cos_phi, model.sin_phi = rho, cos_phi, sin_phi
+        model.divisor = rho
 
     elif model.source_name in hpts_source:
         xs, ys, zs = model.sc
@@ -65,6 +66,38 @@ def organize(model):
         model.x, model.y, model.z = x, y, z
         model.si_list, model.ri = si_list, ri
         model.rho, model.cos_phi, model.sin_phi = rho, cos_phi, sin_phi
+        # divisor
+        model.divisor = rho
+
+    elif model.source_name == "CircularLoop":
+        xs, ys, zs = model.source_place.T
+        x, y, z = model.coordinate
+        radius = model.source.radius
+        # horzontal distance between source & measurement point
+        rho = ((xs-x) ** 2 + (ys-y) ** 2) ** 0.5
+        if rho == 0:
+            rho = np.array([1e-8])
+
+        # azimuth of measurement point from source
+        cos_phi = (x - xs) / rho
+        sin_phi = (y - ys) / rho
+
+        # to avoid non-differential point
+        if zs in model.depth:
+            zs = zs - 1e-8
+        if zs == z:
+            zs = zs - 1e-8
+
+        # in which layer source & measurement points exist
+        si = _get_layer_index(zs, model.depth)
+        ri = _get_layer_index(z, model.depth)
+
+        # return values to model
+        model.xs, model.ys, model.zs = xs, ys, zs
+        model.x, model.y, model.z = x, y, z
+        model.si, model.ri = si, ri
+        model.rho, model.cos_phi, model.sin_phi = rho, cos_phi, sin_phi
+        model.divisor = np.array([radius])
 
     elif model.source_type == "GroundedWire":
         xs, ys = model.sc.T

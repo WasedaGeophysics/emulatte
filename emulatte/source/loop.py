@@ -89,7 +89,7 @@ class CircularLoop(Source):
                 factor = impedivity_s * self.radius * sin_phi / 2
                 kernel_e_r = compute_kernel_loop_e_r(
                     u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_, rho)
-                e_x = factor * (kernel_e_r @ bessel_j1) / rho
+                e_x = factor * (kernel_e_r @ bessel_j1) / rad
                 ans.append(e_x)
             if "y" in direction:
                 if kernel_e_r is None:
@@ -97,7 +97,7 @@ class CircularLoop(Source):
                     kernel_e_r = compute_kernel_loop_e_r(
                                         u_te, d_te, e_up, e_down, 
                                         si, ri, us, zs, z, lambda_, rho)
-                    e_y = factor * (kernel_e_r @ bessel_j1) / rho
+                    e_y = factor * (kernel_e_r @ bessel_j1) / rad
                 else:
                     e_y = e_x * -cos_phi / sin_phi
                 ans.append(e_y)
@@ -113,7 +113,7 @@ class CircularLoop(Source):
                 kernel_h_r = compute_kernel_loop_h_r(
                                         u_te, d_te, e_up, e_down,
                                         si, ri, us, ur, zs, z, lambda_, rho)
-                h_x = factor * (kernel_h_r @ bessel_j1) / rho
+                h_x = factor * (kernel_h_r @ bessel_j1) / rad
                 ans.append(h_x)
             if "y" in direction:
                 if kernel_h_r is None:
@@ -122,7 +122,7 @@ class CircularLoop(Source):
                     kernel_h_r = compute_kernel_loop_h_r(
                                         u_te, d_te, e_up, e_down,
                                         si, ri, us, ur, zs, z, lambda_, rho)
-                    h_y = factor * (kernel_h_r @ bessel_j1) / rho
+                    h_y = factor * (kernel_h_r @ bessel_j1) / rad
                 else:
                     h_y = h_x * sin_phi / cos_phi
                 ans.append(h_y)
@@ -130,9 +130,8 @@ class CircularLoop(Source):
                 factor = self.radius / 2 * impedivity_s / impedivity_r
                 kernel_h_z = compute_kernel_loop_h_z(
                                         u_te, d_te, e_up, e_down, 
-                                        si, ri, us, zs, z, lambda_, rad)
-                h_z = factor * (kernel_h_z @ bessel_j0) / rho
-                print(factor, (kernel_h_z @ bessel_j0) , rho)
+                                        si, ri, us, zs, z, lambda_, rho)
+                h_z = factor * (kernel_h_z @ bessel_j1) / rad
                 ans.append(h_z)
 
         ans = np.array(ans)
