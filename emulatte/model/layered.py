@@ -33,9 +33,10 @@ from __future__ import annotations
 # from Third Party Libraries
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
+import scipy.constants as const
 
 # from Internal Packages
-from .formulae import spatial, coef
+from . import geometrics, damping
 from ..utils.emu_object import Model, Source, DataArray
 from ..dlf import loader as dlf
 
@@ -114,7 +115,7 @@ class Earth1DEM(Model):
         rmp = np.ones(self.nstrata) if rmp is None else \
               np.array(rmp, dtype=float)
 
-        res = np.append(2e14, res)
+        res = np.append(1e9, res)
         rep = np.append(1, rep)
         rmp = np.append(1, rmp)
         
@@ -216,7 +217,13 @@ class Earth1DEM(Model):
             
             dtype = complex
         """
-        
+        if fieldtype in {"E", "D", "J"}:
+            magnetic = False
+        elif fieldtype in {"H", "B"}:
+            magnetic = True
+        else:
+            raise NameError
+
         self.coordinate = np.array(coordinate)
         # unpack direction strings
         direction = [char for char in direction]
@@ -224,28 +231,21 @@ class Earth1DEM(Model):
         frequency = np.array(frequency, ndmin=1, dtype=float)
         omega = 2 * np.pi * frequency
         self.omega = omega
+        self.nfreq = len(omega)
+
         # normalize source vector magnitude in Fourier domain
         if normalize:
             self.source.magnitude_f = np.ones(self.nfreq)
 
-        # 計算実行可能性の判定
-        self._certificate()
-
-        # 空間環境の精査 
-        spatial.organize(self)
-        self.ndipole = len(self.rho)
-
         # compute normalized data in FD
-        if fieldtype in {"E", "D", "J"}:
-            data = self._compute_fdem_responce(direction, omega)
+        if self.ht_config["method"] == "dlf":
+            geometrics.fetch_source_dependent_params_dlf(self)
+            data = self._compute_fdem_responce_dlf(direction, magnetic)
             if fieldtype == "D":
                 data = self.eperm[self.ri] * data
             elif fieldtype == "J":
                 data = self.conductivity[self.ri] * data
-        elif fieldtype in {"H", "B"}:
-            data = self._compute_fdem_responce(
-                            direction, omega, magnetic = True)
-            if fieldtype == "B":
+            elif fieldtype == "B":
                 data = self.mperm[self.ri] * data
         else:
             raise Exception
@@ -257,7 +257,8 @@ class Earth1DEM(Model):
         if time_derivative:
             data = data * 1.j * omega
 
-        data = DataArray(data)
+        # data = DataArray(data)
+
         if data.shape[0] == 1:
             data = data[0]
         return data
@@ -312,82 +313,115 @@ class Earth1DEM(Model):
         else:
             raise NameError
 
-    def fdem_measure(self):
-        # 特殊ケース（ループのCoincident誘導起電力、その他プリメイドシステム）用
-        pass
-
-    def tdem_measure(self):
-        # 特殊ケース用
-        pass
-
-    def _certificate(self):
-        # フィルター設定の確認
-        # ソースの周波数と測定周波数の一致
-        pass
-
-    def _compute_fdem_responce(self, direction, omega, magnetic = False):
+    def _compute_fdem_responce_dlf(self, direction, magnetic):
         # compute admittivity, impedivity, wavenumber in each layer
-        admittivity, impedivity, k, nfreq = coef.compute_wavenumber(
-            self.resistivity, self.rel_e_permittivity, self.rel_m_peameability,
-            self.omega, self.qss
-        )
-
+        admittivity, impedivity, k = self._compute_wavenumber(self.qss)
         self.admittivity = admittivity
         self.impedivity = impedivity
         self.k = k
-        self.nfreq = nfreq
 
-        if self.ht_config["method"] == "dlf":
-            # フィルターの読み出し
-            if self.ht_config["_user_def"]:
-                ybase_phase = np.array(self.ht_config["phase"])
-                bessel_j0 = np.array(self.ht_config["j0"])
-                bessel_j1 = np.array(self.ht_config["j0"])
-            else:
-                filter_name = self.ht_config["filter"]
-                ybase_phase, bessel_j0, bessel_j1 = \
-                    dlf.load_hankel_filter(filter_name)
-
-            # compute wavenumber u
-            self.nphase = len(ybase_phase)
-            self.size4d = (self.ndipole, self.nfreq, self.nlayer, self.nphase)
-            self.lambda_ = coef.compute_lambda(ybase_phase, self.divisor)
-            self.u = coef.compute_u(self.lambda_, self.k, self.size4d)
-
-            te_dsign = self.source.kernel_te_down_sign
-            tm_dsign = self.source.kernel_tm_down_sign
-            te_usign = self.source.kernel_te_up_sign
-            tm_usign = self.source.kernel_tm_up_sign
-
-            inp = (
-                self.thick_all,
-                self.depth,
-                self.zs,
-                self.z,
-                self.si,
-                self.ri,
-                self.size4d,
-                self.u, 
-                self.admittivity,
-                self.impedivity,
-                te_dsign,
-                tm_dsign,
-                te_usign,
-                tm_usign
-            )
-
-            u_te, d_te, u_tm, d_tm, e_up, e_down = \
-                                    coef.compute_up_down_damping(*inp)
-            self.u_te, self.d_te = u_te, d_te
-            self.u_tm, self.d_tm = u_tm, d_tm
-            self.e_up, self.e_down = e_up, e_down
-            
-            # compute fdem responce
-            fd_resp = self.source._compute_hankel_transform_dlf(
-                        self, direction, bessel_j0, bessel_j1, magnetic
-                        )
-
+        # フィルターの読み出し
+        if self.ht_config["_user_def"]:
+            self.phase = np.array(self.ht_config["phase"])
+            self.bessel_j0 = np.array(self.ht_config["j0"])
+            self.bessel_j1 = np.array(self.ht_config["j0"])
         else:
-            raise NameError("hankel transform 'method' must be 'dlf'")
-
+            filter_name = self.ht_config["filter"]
+            self.phase, self.bessel_j0, self.bessel_j1 = \
+                dlf.load_hankel_filter(filter_name)
+        
+        self.nphase = len(self.phase)
+        
+        # compute fdem responce
+        fd_resp = self.source._compute_hankel_transform_dlf(
+                                                    self, direction, magnetic)
         return fd_resp
+
+    def _compute_wavenumber(self, qss):
+        # 2D array (nfreq, nlayer)
+        res = self.resistivity
+        rep = self.rel_e_permittivity
+        rmp = self.rel_m_peameability
+        omega = self.omega
+
+        cond = 1 / res
+        eperm = rep * const.epsilon_0
+        mperm = rmp * const.mu_0
+
+        impedivity = 1j * omega.reshape(-1,1) @ mperm.reshape(1,-1)
+
+        if qss:
+            admittivity = np.ones((self.nfreq, 1)) @ cond.reshape(1,-1)
+            admittivity = admittivity.astype(complex)
+        else:
+            admittivity = cond.reshape(1,-1) \
+                            + 1j * omega.reshape(-1,1) @ eperm.reshape(1,-1)
+
+        k = np.sqrt(-admittivity * impedivity)
+        return admittivity, impedivity, k
+
+    def _compute_kernel_components(self):
+        self.ndims = (self.nfreq, self.nlayer, self.nphase)
+        self.lambda_ = self.phase / self.divisor
+        kk, ll, mm = self.ndims
+        lambda_tensor = np.zeros((kk, ll, mm), dtype=complex)
+        lambda_tensor[:,:] = self.lambda_
+        k_tensor = np.zeros((mm, kk, ll), dtype=complex)
+        k_tensor[:,:] = self.k
+        k_tensor = k_tensor.transpose((1, 2, 0))
+        self.u = np.sqrt(lambda_tensor ** 2 - k_tensor ** 2)
+
+        te_dsign = self.source.kernel_te_down_sign
+        tm_dsign = self.source.kernel_tm_down_sign
+        te_usign = self.source.kernel_te_up_sign
+        tm_usign = self.source.kernel_tm_up_sign
+
+        inp = (
+            self.thick_all, self.depth,
+            self.zs, self.z,
+            self.si, self.ri,
+            self.ndims, self.u,
+            self.admittivity, self.impedivity,
+            te_dsign, tm_dsign, te_usign, tm_usign
+        )
+
+        u_te, d_te, u_tm, d_tm, e_up, e_down = \
+                                damping.compute_coefficients(*inp)
+
+        self.u_te, self.d_te = u_te, d_te
+        self.u_tm, self.d_tm = u_tm, d_tm
+        self.e_up, self.e_down = e_up, e_down
+
+    def _compute_kernel_components_multi(self):
+        self.ndist = len(self.divisor)
+        self.ndims = (self.ndist, self.nfreq, self.nlayer, self.nphase)
+        self.lambda_ = self.phase.reshape(1,-1) / self.divisor.reshape(-1,1)
+        jj, kk, ll, mm = self.ndims
+        lambda_tensor = np.zeros((kk, ll, jj, mm), dtype=complex)
+        lambda_tensor[:,:] = self.lambda_
+        lambda_tensor = lambda_tensor.transpose((2,0,1,3))
+        k_tensor = np.zeros((jj, mm, kk, ll), dtype=complex)
+        k_tensor[:,:] = self.k
+        k_tensor = k_tensor.transpose((0,2,3,1))
+        self.u = np.sqrt(lambda_tensor ** 2 - k_tensor ** 2)
+
+        te_dsign = self.source.kernel_te_down_sign
+        tm_dsign = self.source.kernel_tm_down_sign
+        te_usign = self.source.kernel_te_up_sign
+        tm_usign = self.source.kernel_tm_up_sign
+
+        inp = (
+            self.thick_all, self.depth,
+            self.zs, self.z,
+            self.si, self.ri,
+            self.ndims, self.u,
+            self.admittivity, self.impedivity,
+            te_dsign, tm_dsign, te_usign, tm_usign
+        )
+
+        u_te, d_te, u_tm, d_tm, e_up, e_down = \
+                            damping.compute_coefficients_multi(*inp)
+        
+        self.u_te, self.d_te = u_te, d_te
+        self.u_tm, self.d_tm = u_tm, d_tm
+        self.e_up, self.e_down = e_up, e_down

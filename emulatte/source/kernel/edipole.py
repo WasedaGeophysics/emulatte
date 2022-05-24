@@ -89,3 +89,12 @@ def compute_kernel_hed_h_z_te(
     kernel = kernel + kernel_add
     kernel = kernel * lambda_ ** 2 / us
     return kernel
+
+def compute_kernel_gw_e_z_tm(
+        u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_):
+    kernel = u_tm * e_up + d_tm * e_down
+    # TODO おそらく間違っている
+    kernel_add = int(si==ri) * np.sign(z - zs) * np.exp(- us * abs(z - zs))
+    kernel = kernel + kernel_add
+    kernel = kernel * lambda_
+    return kernel

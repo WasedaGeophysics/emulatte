@@ -254,9 +254,9 @@ class SurfaceHEDx:
 
         h_y = -current * ds / (4 * np.pi * r ** 2)
         arg = 1.j * k * r / 2
-        ikrl = 1j*k*r * (iv(1,arg)*kv(0,arg) - iv(0,arg)*kv(1,arg) - 8*iv(1,arg)*kv(1,arg))
-        h_y *=  6*iv(1,arg)*kv(1,arg) \
-                + 1j*k*r * (iv(1,arg)*k(0,arg) - iv(0,arg)*kv(1,arg)) \
+        ikrl = 1j*k*r * (iv(0,arg)*kv(1,arg) - iv(1,arg)*kv(0,arg)) - 8*iv(1,arg)*kv(1,arg)
+        h_y *=  6. * iv(1,arg) * kv(1,arg) \
+                + 1.j*k*r * (iv(1,arg) * kv(0,arg) - iv(0,arg) * kv(1,arg)) \
                 + (x/r)**2 * ikrl
         return h_y
 

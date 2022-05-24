@@ -68,30 +68,33 @@ class VMD(Source):
             self.magnitude_t = magnitude
 
     def _compute_hankel_transform_dlf(
-            self, model, direction, bessel_j0, bessel_j1, magnetic : bool
+            self, model, direction, magnetic : bool
             ) -> NDArray:
         # kernel components
-        si = model.si[0]
-        zs = model.zs[0]
+        model._compute_kernel_components()
+        si = model.si
+        zs = model.zs
         ri = model.ri
         z = model.z
 
-        rho = model.rho[0]
-        lambda_ = model.lambda_[0]
+        rho = model.rho
+        lambda_ = model.lambda_
+        bessel_j0 = model.bessel_j0
+        bessel_j1 = model.bessel_j1
 
-        us = model.u[0,:,si]
-        ur = model.u[0,:,ri]
+        us = model.u[:,si]
+        ur = model.u[:,ri]
 
         impedivity_s = model.impedivity[:, si]
         impedivity_r = model.impedivity[:, ri]
         
-        u_te = model.u_te[0]
-        d_te = model.d_te[0]
-        e_up = model.e_up[0]
-        e_down = model.e_down[0]
+        u_te = model.u_te
+        d_te = model.d_te
+        e_up = model.e_up
+        e_down = model.e_down
 
-        sin_phi = model.sin_phi[0]
-        cos_phi = model.cos_phi[0]
+        sin_phi = model.sin_phi
+        cos_phi = model.cos_phi
 
         nfreq = model.nfreq
 
@@ -104,14 +107,14 @@ class VMD(Source):
                 factor = impedivity_s / (4 * np.pi) * sin_phi
                 kernel_e_phi = compute_kernel_vmd_e_phi(
                     u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_)
-                e_x = factor * (kernel_e_phi @ bessel_j1) / rho
+                e_x = factor * np.dot(kernel_e_phi, bessel_j1) / rho
                 ans.append(e_x)
             if "y" in direction:
                 if kernel_e_phi is None:
                     factor = impedivity_s / (4 * np.pi) * -cos_phi
                     kernel_e_phi = compute_kernel_vmd_e_phi(
                         u_te, d_te, e_up, e_down, si, ri, us, zs, z, lambda_)
-                    e_y = factor * (kernel_e_phi @ bessel_j1) / rho
+                    e_y = factor * np.dot(kernel_e_phi, bessel_j1) / rho
                 else:
                     # e_xの結果を再利用
                     e_y = e_x * -cos_phi / sin_phi
@@ -127,7 +130,7 @@ class VMD(Source):
                 kernel_h_r = compute_kernel_vmd_h_r(
                                         u_te, d_te, e_up, e_down,
                                         si, ri, us, ur, zs, z, lambda_)
-                h_x = factor * (kernel_h_r @ bessel_j1) / rho
+                h_x = factor * np.dot(kernel_h_r, bessel_j1) / rho
                 ans.append(h_x)
             if "y" in direction:
                 if kernel_h_r is None:
@@ -135,7 +138,7 @@ class VMD(Source):
                     kernel_h_r = compute_kernel_vmd_h_r(
                                         u_te, d_te, e_up, e_down, 
                                         si, ri, us, ur, zs, z, lambda_)
-                    h_y = factor * (kernel_h_r @ bessel_j1) / rho
+                    h_y = factor * np.dot(kernel_h_r, bessel_j1) / rho
                 else:
                     h_y = h_x * sin_phi / cos_phi
                 ans.append(h_y)
@@ -144,7 +147,7 @@ class VMD(Source):
                 kernel_h_z = compute_kernel_vmd_h_z(
                                         u_te, d_te, e_up, e_down, 
                                         si, ri, us, zs, z, lambda_)
-                h_z = factor * (kernel_h_z @ bessel_j0) / rho
+                h_z = factor * np.dot(kernel_h_z, bessel_j0) / rho
                 ans.append(h_z)
 
         ans = np.array(ans)
@@ -177,30 +180,32 @@ class VED(Source):
             self.magnitude_t = magnitude
 
     def _compute_hankel_transform_dlf(
-            self, model, direction, bessel_j0, bessel_j1, magnetic : bool
+            self, model, direction, magnetic : bool
             ) -> NDArray:
         # kernel components
-        si = model.si[0]
-        zs = model.zs[0]
+        model._compute_kernel_components()
+        si = model.si
+        zs = model.zs
         ri = model.ri
         z = model.z
 
-        rho = model.rho[0]
-        lambda_ = model.lambda_[0]
+        rho = model.rho
+        lambda_ = model.lambda_
+        bessel_j0 = model.bessel_j0
+        bessel_j1 = model.bessel_j1
 
-        us = model.u[0,:,si]
-        ur = model.u[0,:,ri]
+        us = model.u[:,si]
+        ur = model.u[:,ri]
 
-        admittivity_s = model.admittivity[:, si]
         admittivity_r = model.admittivity[:, ri]
         
-        u_tm = model.u_tm[0]
-        d_tm = model.d_tm[0]
-        e_up = model.e_up[0]
-        e_down = model.e_down[0]
+        u_tm = model.u_tm
+        d_tm = model.d_tm
+        e_up = model.e_up
+        e_down = model.e_down
 
-        sin_phi = model.sin_phi[0]
-        cos_phi = model.cos_phi[0]
+        sin_phi = model.sin_phi
+        cos_phi = model.cos_phi
 
         nfreq = model.nfreq
 
@@ -213,14 +218,14 @@ class VED(Source):
                 factor = -cos_phi / (4 * np.pi * admittivity_r)
                 kernel_e_phi = compute_kernel_ved_e_phi(
                     u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_)
-                e_x = factor * (kernel_e_phi @ bessel_j1) / rho
+                e_x = factor * np.dot(kernel_e_phi, bessel_j1) / rho
                 ans.append(e_x)
             if "y" in direction:
                 if kernel_e_phi is None:
                     factor = -sin_phi / (4 * np.pi * admittivity_r)
                     kernel_e_phi = compute_kernel_ved_e_phi(
                         u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_)
-                    e_y = factor * (kernel_e_phi @ bessel_j1) / rho
+                    e_y = factor * np.dot(kernel_e_phi, bessel_j1) / rho
                 else:
                     # e_xの結果を再利用
                     e_y = e_x * sin_phi / cos_phi
@@ -230,7 +235,7 @@ class VED(Source):
                 kernel_e_z = compute_kernel_ved_e_z(
                                         u_tm, d_tm, e_up, e_down, 
                                         si, ri, us, ur, zs, z, lambda_)
-                e_z = factor * (kernel_e_z @ bessel_j0) / rho
+                e_z = factor * np.dot(kernel_e_z, bessel_j0) / rho
                 ans.append(e_z)
 
         # Magnetic field H
@@ -240,14 +245,14 @@ class VED(Source):
                 factor = -sin_phi / (4 * np.pi)
                 kernel_h_r = compute_kernel_ved_h_r(
                     u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_)
-                h_x = factor * (kernel_h_r @ bessel_j1) / rho
+                h_x = factor * np.dot(kernel_h_r, bessel_j1) / rho
                 ans.append(h_x)
             if "y" in direction:
                 if kernel_h_r is None:
                     factor = cos_phi / (4 * np.pi)
                     kernel_h_r = compute_kernel_ved_h_r(
                         u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_)
-                    h_y = factor * (kernel_h_r @ bessel_j1) / rho
+                    h_y = factor * np.dot(kernel_h_r, bessel_j1) / rho
                 else:
                     h_y = h_x * cos_phi / -sin_phi
                 ans.append(h_y)
@@ -288,36 +293,38 @@ class HMD(Source):
             self.magnitude_t = magnitude
 
     def _compute_hankel_transform_dlf(
-            self, model, direction, bessel_j0, bessel_j1, magnetic : bool
+            self, model, direction, magnetic : bool
             ) -> NDArray:
         # kernel components
-        si = model.si[0]
-        zs = model.zs[0]
+        model._compute_kernel_components()
+        si = model.si
+        zs = model.zs
         ri = model.ri
         z = model.z
 
-        rho = model.rho[0]
-        lambda_ = model.lambda_[0]
+        rho = model.rho
+        lambda_ = model.lambda_
+        bessel_j0 = model.bessel_j0
+        bessel_j1 = model.bessel_j1
 
-        us = model.u[0,:,si]
-        ur = model.u[0,:,ri]
+        us = model.u[:,si]
+        ur = model.u[:,ri]
 
         impz_s = model.impedivity[:, si]
         impz_r = model.impedivity[:, ri]
-        admy_s = model.admittivity[:, si]
         admy_r = model.admittivity[:, ri]
 
         ks = model.k[:, si]
         
-        u_te = model.u_te[0]
-        d_te = model.d_te[0]
-        u_tm = model.u_tm[0]
-        d_tm = model.d_tm[0]
-        e_up = model.e_up[0]
-        e_down = model.e_down[0]
+        u_te = model.u_te
+        d_te = model.d_te
+        u_tm = model.u_tm
+        d_tm = model.d_tm
+        e_up = model.e_up
+        e_down = model.e_down
 
-        sin_phi = model.sin_phi[0]
-        cos_phi = model.cos_phi[0]
+        sin_phi = model.sin_phi
+        cos_phi = model.cos_phi
 
         ans = []
 
@@ -336,10 +343,10 @@ class HMD(Source):
                 kernel_e_r_tm = compute_kernel_hmd_e_r_tm(
                     u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_
                 )
-                e_x = extm0 * (kernel_e_r_tm[0] @ bessel_j0) \
-                        + extm1 * (kernel_e_r_tm[1] @ bessel_j1) \
-                        + exte0 * (kernel_e_r_te[0] @ bessel_j0) \
-                        + exte1 * (kernel_e_r_te[1] @ bessel_j1)
+                e_x = extm0 * np.dot(kernel_e_r_tm[0], bessel_j0) \
+                        + extm1 * np.dot(kernel_e_r_tm[1], bessel_j1) \
+                        + exte0 * np.dot(kernel_e_r_te[0], bessel_j0) \
+                        + exte1 * np.dot(kernel_e_r_te[1], bessel_j1)
                 e_x = e_x / rho
 
                 # e_y
@@ -349,10 +356,10 @@ class HMD(Source):
                 eyte0 = impz_s * cos_phi ** 2 / (4 * np.pi)
                 eyte1 = - impz_s * cos_2phi / (4 * np.pi * rho)
 
-                e_y = eytm0 * (kernel_e_r_tm[0] @ bessel_j0) \
-                        + eytm1 * (kernel_e_r_tm[1] @ bessel_j1) \
-                        + eyte0 * (kernel_e_r_te[0] @ bessel_j0) \
-                        + eyte1 * (kernel_e_r_te[1] @ bessel_j1)
+                e_y = eytm0 * np.dot(kernel_e_r_tm[0], bessel_j0) \
+                        + eytm1 * np.dot(kernel_e_r_tm[1], bessel_j1) \
+                        + eyte0 * np.dot(kernel_e_r_te[0], bessel_j0) \
+                        + eyte1 * np.dot(kernel_e_r_te[1], bessel_j1)
                 e_y = e_y / rho
 
                 e_xy = np.array([e_x, e_y])
@@ -361,6 +368,7 @@ class HMD(Source):
                         [np.cos(psi), -np.sin(psi)],
                         [np.sin(psi), np.cos(psi)]
                     ])
+
                 e_xy_original = rot_mat @ e_xy
                 if "x" in direction:
                     ans.append(e_xy_original[0])
@@ -372,7 +380,7 @@ class HMD(Source):
                 kernel_e_z = compute_kernel_hmd_e_z_tm(
                     u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_
                 )
-                e_z = factor * (kernel_e_z @ bessel_j1) / rho
+                e_z = factor * np.dot(kernel_e_z, bessel_j1) / rho
                 ans.append(e_z)
 
         # Magnetic field H
@@ -393,10 +401,10 @@ class HMD(Source):
                 hxte0 = impz_s / impz_r * cos_phi ** 2 / (4 * np.pi)
                 hxte1 = - impz_s / impz_r * cos_2phi / (4 * np.pi * rho)
 
-                h_x = hxtm0 * (kernel_h_r_tm[0] @ bessel_j0) \
-                        + hxtm1 * (kernel_h_r_tm[1] @ bessel_j1) \
-                        + hxte0 * (kernel_h_r_te[0] @ bessel_j0) \
-                        + hxte1 * (kernel_h_r_te[1] @ bessel_j1)
+                h_x = hxtm0 * np.dot(kernel_h_r_tm[0], bessel_j0) \
+                        + hxtm1 * np.dot(kernel_h_r_tm[1], bessel_j1) \
+                        + hxte0 * np.dot(kernel_h_r_te[0], bessel_j0) \
+                        + hxte1 * np.dot(kernel_h_r_te[1], bessel_j1)
                 h_x = h_x / rho
 
                 # h_y
@@ -405,10 +413,10 @@ class HMD(Source):
                 hyte0 = impz_s / impz_r * cos_phi * sin_phi / (4 * np.pi)
                 hyte1 = - hyte0 * 2 / rho
 
-                h_y = hytm0 * (kernel_h_r_tm[0] @ bessel_j0) \
-                        + hytm1 * (kernel_h_r_tm[1] @ bessel_j1) \
-                        + hyte0 * (kernel_h_r_te[0] @ bessel_j0) \
-                        + hyte1 * (kernel_h_r_te[1] @ bessel_j1)
+                h_y = hytm0 * np.dot(kernel_h_r_tm[0], bessel_j0) \
+                        + hytm1 * np.dot(kernel_h_r_tm[1], bessel_j1) \
+                        + hyte0 * np.dot(kernel_h_r_te[0], bessel_j0) \
+                        + hyte1 * np.dot(kernel_h_r_te[1], bessel_j1)
                 h_y = h_y / rho
 
                 h_xy = np.array([h_x, h_y])
@@ -428,7 +436,7 @@ class HMD(Source):
                 kernel_h_z = compute_kernel_hmd_h_z_te(
                     u_te, d_te, e_up, e_down, si, ri, us, ur, zs, z, lambda_
                 )
-                h_z = factor * (kernel_h_z @ bessel_j1) / rho
+                h_z = factor * np.dot(kernel_h_z, bessel_j1) / rho
                 ans.append(h_z)
         # Magnetic field H
         ans = np.array(ans)
@@ -465,36 +473,36 @@ class HED(Source):
             self.magnitude_t = magnitude
 
     def _compute_hankel_transform_dlf(
-            self, model, direction, bessel_j0, bessel_j1, magnetic : bool
+            self, model, direction, magnetic : bool
             ) -> NDArray:
         # kernel components
-        si = model.si[0]
-        zs = model.zs[0]
+        model._compute_kernel_components()
+        si = model.si
+        zs = model.zs
         ri = model.ri
         z = model.z
 
-        rho = model.rho[0]
-        lambda_ = model.lambda_[0]
+        rho = model.rho
+        lambda_ = model.lambda_
+        bessel_j0 = model.bessel_j0
+        bessel_j1 = model.bessel_j1
 
-        us = model.u[0,:,si]
-        ur = model.u[0,:,ri]
+        us = model.u[:,si]
+        ur = model.u[:,ri]
 
         impz_s = model.impedivity[:, si]
         impz_r = model.impedivity[:, ri]
-        admy_s = model.admittivity[:, si]
         admy_r = model.admittivity[:, ri]
-
-        ks = model.k[:, si]
         
-        u_te = model.u_te[0]
-        d_te = model.d_te[0]
-        u_tm = model.u_tm[0]
-        d_tm = model.d_tm[0]
-        e_up = model.e_up[0]
-        e_down = model.e_down[0]
+        u_te = model.u_te
+        d_te = model.d_te
+        u_tm = model.u_tm
+        d_tm = model.d_tm
+        e_up = model.e_up
+        e_down = model.e_down
 
-        sin_phi = model.sin_phi[0]
-        cos_phi = model.cos_phi[0]
+        sin_phi = model.sin_phi
+        cos_phi = model.cos_phi
 
         ans = []
 
@@ -517,11 +525,11 @@ class HED(Source):
                 exte1 = - impz_s * cos_2phi / (4 * np.pi * rho)
                 exte_line = - impz_s / (4 * np.pi)
 
-                e_x = extm0 * (kernel_e_r_tm[0] @ bessel_j0) \
-                        + extm1 * (kernel_e_r_tm[1] @ bessel_j1) \
-                        + exte0 * (kernel_e_r_te[0] @ bessel_j0) \
-                        + exte1 * (kernel_e_r_te[1] @ bessel_j1) \
-                        + exte_line * (kernel_e_r_te[0] @ bessel_j0)
+                e_x = extm0 * np.dot(kernel_e_r_tm[0], bessel_j0) \
+                        + extm1 * np.dot(kernel_e_r_tm[1], bessel_j1) \
+                        + exte0 * np.dot(kernel_e_r_te[0], bessel_j0) \
+                        + exte1 * np.dot(kernel_e_r_te[1], bessel_j1) \
+                        + exte_line * np.dot(kernel_e_r_te[0], bessel_j0)
                 e_x = e_x / rho
 
                 # e_y
@@ -530,10 +538,10 @@ class HED(Source):
                 eyte0 = impz_s * cos_phi * sin_phi / (4 * np.pi)
                 eyte1 = - eyte0 * 2 / rho
 
-                e_y = eytm0 * (kernel_e_r_tm[0] @ bessel_j0) \
-                        + eytm1 * (kernel_e_r_tm[1] @ bessel_j1) \
-                        + eyte0 * (kernel_e_r_te[0] @ bessel_j0) \
-                        + eyte1 * (kernel_e_r_te[1] @ bessel_j1)
+                e_y = eytm0 * np.dot(kernel_e_r_tm[0], bessel_j0) \
+                        + eytm1 * np.dot(kernel_e_r_tm[1], bessel_j1) \
+                        + eyte0 * np.dot(kernel_e_r_te[0], bessel_j0) \
+                        + eyte1 * np.dot(kernel_e_r_te[1], bessel_j1)
 
                 e_y = e_y / rho
 
@@ -554,7 +562,7 @@ class HED(Source):
                 kernel_e_z = compute_kernel_hed_e_z_tm(
                     u_tm, d_tm, e_up, e_down, si, ri, us, ur, zs, z, lambda_
                 )
-                e_z = factor * (kernel_e_z @ bessel_j1) / rho
+                e_z = factor * np.dot(kernel_e_z, bessel_j1) / rho
                 ans.append(e_z)
 
         # Magnetic field H
@@ -575,10 +583,10 @@ class HED(Source):
                 hxte0 = impz_s / impz_r * cos_phi * sin_phi / (4 * np.pi)
                 hxte1 = - hxte0 * 2 / rho
 
-                h_x = hxtm0 * (kernel_h_r_tm[0] @ bessel_j0) \
-                        + hxtm1 * (kernel_h_r_tm[1] @ bessel_j1) \
-                        + hxte0 * (kernel_h_r_te[0] @ bessel_j0) \
-                        + hxte1 * (kernel_h_r_te[1] @ bessel_j1)
+                h_x = hxtm0 * np.dot(kernel_h_r_tm[0], bessel_j0) \
+                        + hxtm1 * np.dot(kernel_h_r_tm[1], bessel_j1) \
+                        + hxte0 * np.dot(kernel_h_r_te[0], bessel_j0) \
+                        + hxte1 * np.dot(kernel_h_r_te[1], bessel_j1)
                 h_x = h_x / rho
 
                 # h_y
@@ -589,11 +597,11 @@ class HED(Source):
                 hyte1 = impz_s / impz_r * cos_2phi / (4 * np.pi * rho)
                 hyte_line = impz_s / impz_r / (4 * np.pi)
 
-                h_y = hytm0 * (kernel_h_r_tm[0] @ bessel_j0) \
-                        + hytm1 * (kernel_h_r_tm[1] @ bessel_j1) \
-                        + hyte0 * (kernel_h_r_te[0] @ bessel_j0) \
-                        + hyte1 * (kernel_h_r_te[1] @ bessel_j1) \
-                        + hyte_line * (kernel_h_r_te[0] @ bessel_j0)
+                h_y = hytm0 * np.dot(kernel_h_r_tm[0], bessel_j0) \
+                        + hytm1 * np.dot(kernel_h_r_tm[1], bessel_j1) \
+                        + hyte0 * np.dot(kernel_h_r_te[0], bessel_j0) \
+                        + hyte1 * np.dot(kernel_h_r_te[1], bessel_j1) \
+                        + hyte_line * np.dot(kernel_h_r_te[0], bessel_j0)
                 h_y = h_y / rho
 
                 h_xy = np.array([h_x, h_y])
@@ -609,13 +617,130 @@ class HED(Source):
                     ans.append(h_xy_original[1])
 
             if "z" in direction:
-                factor = - impz_s / impz_r * sin_phi / (4 * np.pi)
+                factor = impz_s / impz_r * sin_phi / (4 * np.pi)
                 kernel_h_z = compute_kernel_hed_h_z_te(
                     u_te, d_te, e_up, e_down, si, ri, us, ur, zs, z, lambda_
                 )
-                h_z = factor * (kernel_h_z @ bessel_j1) / rho
+                h_z = factor * np.dot(kernel_h_z, bessel_j1) / rho
                 ans.append(h_z)
         # Magnetic field H
         ans = np.array(ans)
         ans = ans * self.length
+        return ans
+
+class AMD(Source):
+    def __init__(self, moment, dip, azimuth, ontime = None, frequency=None) -> None:
+        moment = np.array(moment, ndmin=1, dtype=complex)
+        self.moment = moment
+
+        self.dip = dip
+        self.azimuth = azimuth
+
+        self.diprad = dip / 180 * np.pi
+        self.azmrad = azimuth / 180 * np.pi
+
+        magnitude = moment
+        
+        domain, signal, magnitude, ontime, frequency = \
+            check_waveform(magnitude, ontime, frequency)
+
+        self.domain = domain
+        self.signal = signal
+        self.ontime = ontime
+        self.frequency = frequency
+        if domain == "frequency":
+            self.magnitude_f = magnitude
+        else:
+            self.magnitude_f = 1
+            self.magnitude_t = magnitude
+
+    def _compute_hankel_transform_dlf(
+            self, model, direction, magnetic : bool
+            ) -> NDArray:
+
+        # VMD
+        self.kernel_te_up_sign = 1
+        self.kernel_te_down_sign = 1
+        self.kernel_tm_up_sign = 0
+        self.kernel_tm_down_sign = 0
+        model.cos_phi, model.sin_phi = model.cos_phi_v, model.sin_phi_v
+        model._compute_kernel_components()
+        vmd_field = VMD(1)._compute_hankel_transform_dlf(
+                            model, direction, magnetic)
+        # HMD
+        self.kernel_te_up_sign = -1
+        self.kernel_te_down_sign = 1
+        self.kernel_tm_up_sign = 1
+        self.kernel_tm_down_sign = 1
+        model.cos_phi, model.sin_phi = model.cos_phi_h, model.sin_phi_h
+        model._compute_kernel_components()
+        hmd_field = HMD(1, self.azimuth)._compute_hankel_transform_dlf(
+                            model, direction, magnetic)
+        
+        sin_dip = np.sin(self.diprad)
+        cos_dip = np.cos(self.diprad)
+
+        ans = vmd_field * sin_dip + hmd_field * cos_dip
+        return ans
+
+class AED(Source):
+    def __init__(self, current, length, dip, azimuth, ontime = None, frequency=None) -> None:
+
+        current = np.array(current, ndmin=1, dtype=complex)
+        self.current = current
+        self.length = length
+
+        self.dip = dip
+        self.azimuth = azimuth
+
+        self.diprad = dip / 180 * np.pi
+        self.azmrad = azimuth / 180 * np.pi
+
+        azimuth_rad = azimuth / 180 * np.pi
+
+        magnitude = current
+        
+        domain, signal, magnitude, ontime, frequency = \
+            check_waveform(magnitude, ontime, frequency)
+
+        self.azmrad = azimuth_rad
+        self.domain = domain
+        self.signal = signal
+        self.ontime = ontime
+        self.frequency = frequency
+        if domain == "frequency":
+            self.magnitude_f = magnitude
+        else:
+            self.magnitude_f = 1
+            self.magnitude_t = magnitude
+
+    def _compute_hankel_transform_dlf(
+            self, model, direction, magnetic : bool
+            ) -> NDArray:
+
+        # VED
+        self.kernel_te_up_sign = 0
+        self.kernel_te_down_sign = 0
+        self.kernel_tm_up_sign = 1
+        self.kernel_tm_down_sign = 1
+        model.cos_phi, model.sin_phi = model.cos_phi_v, model.sin_phi_v
+        model._compute_kernel_components()
+        vmd_field = VED(1, self.length)._compute_hankel_transform_dlf(
+                            model, direction, magnetic)
+
+        # HED
+        self.kernel_te_up_sign = 1
+        self.kernel_te_down_sign = 1
+        self.kernel_tm_up_sign = -1
+        self.kernel_tm_down_sign = 1
+        model.cos_phi, model.sin_phi = model.cos_phi_h, model.sin_phi_h
+        model._compute_kernel_components()
+        hmd_field = \
+            HED(1, self.length, self.azimuth)._compute_hankel_transform_dlf(
+                            model, direction, magnetic)
+        
+        sin_dip = np.sin(self.diprad)
+        cos_dip = np.cos(self.diprad)
+
+        ans = vmd_field * sin_dip + hmd_field * cos_dip
         return ans
