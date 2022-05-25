@@ -44,3 +44,9 @@ def check_waveform(magnitude, ontime, frequency):
         raise Exception(("cannot recognize domain. Please make sure source's"
                          "ontime or frequency is None"))
     return domain, signal, magnitude, ontime, frequency
+
+def split_time(time):
+    nnegative = sum(time < 0)
+    time_neg = time[:nnegative]
+    time_pos = time[nnegative:]
+    return

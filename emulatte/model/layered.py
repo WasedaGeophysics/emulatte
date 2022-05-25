@@ -32,12 +32,13 @@ from __future__ import annotations
 
 # from Third Party Libraries
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike, NDArray
+from numpy.typing import ArrayLike
 import scipy.constants as const
 
 # from Internal Packages
 from . import geometrics, damping
 from ..utils.emu_object import Model, Source, DataArray
+from ..utils.interpret
 from ..dlf import loader as dlf
 
 class Earth1DEM(Model):
@@ -304,6 +305,8 @@ class Earth1DEM(Model):
         # 
         signal = self.source.signal
         if self.ft_config["method"] == "dlf":
+            time_pos, time_neg =  
+
             # 計算に必要な周波数を全て持ってくる
             
             # コンボリューション
