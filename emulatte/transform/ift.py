@@ -3,7 +3,54 @@ import scipy
 from scipy import interpolate
 import scipy.signal as ss
 from ..dlf.loader import load_sin_cos_filter
-from ..utils.converter import array
+
+# dlf
+def get_frequency_for_dlf(time_min, time_max, ft_config):
+    sampling_method = ft_config["sampling"]
+    if ft_config["_user_def"]:
+        phase_base = ft_config["phase"]
+    else:
+        filter_name = ft_config["filter"]
+        phase_base, _, _ = load_sin_cos_filter(filter_name)
+
+    if sampling_method == "fdri":
+        #TODO optimize this
+        pts_per_decade = 30
+        logfmin = int(np.log10(phase_base[0] / time_max)) - 2
+        logfmax = int(np.log10(phase_base[-1] / time_min)) + 1
+        freq_size = (logfmax - logfmin) * pts_per_decade
+        omega = np.logspace(logfmin, logfmax, freq_size)
+        freq = omega / (2 * np.pi)
+        time_resample = None
+
+    elif sampling_method == "lagged":
+        # 10th root of eular number
+        common = phase_base[1] / phase_base[0]
+
+        # times from the start point to the end point passage
+        etime_size = int(10 * np.log(time_max / time_min)) + 2
+        etime_init = np.ones(etime_size) * time_min
+        etime_base = np.ones(etime_size) * common
+        etime_expo = np.arange(etime_size)
+        etime = etime_init * etime_base ** etime_expo
+
+        # phase = omega * t
+        PHASE0 = phase_base[0]
+        phase_size = len(phase_base)
+        phase_init = np.ones(phase_size) * PHASE0
+        phase_base = np.ones(phase_size) * common
+        phase_expo = np.arange(phase_size)
+        phase = phase_init * phase_base ** phase_expo
+
+        omega_1 = phase[0] / etime
+        omega_1 = omega_1[::-1]
+        omega_2 = phase / etime[0]
+        omega = np.concatenate([omega_1[:-1], omega_2])
+        freq = omega / (2 * np.pi)
+        time_resample = etime
+
+    return freq, time_resample
+
 
 def lagged_convolution(model, which, direction, time, signal):
     """Summary

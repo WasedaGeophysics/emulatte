@@ -7,7 +7,7 @@ def fdem_plot(freq, data, data2=None):
     tc = "#555"
     fig = plt.figure(figsize=(6,4), facecolor=fc, dpi=200)
     ax = fig.add_subplot(111)
-    cc = ["#5bf", "#06a", "#fb5", "#b36"]
+    cc = ["#5bf", "#06a", "#fb5", "#d82"]
 
     ax.loglog(freq, data.real, c=cc[0], linestyle="-")
     ax.loglog(freq, -data.real, c=cc[0], linestyle=":")

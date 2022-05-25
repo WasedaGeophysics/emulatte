@@ -63,7 +63,7 @@ def compute_coefficients_multi(
 
     return u_te[:,:,ri], d_te[:,:,ri], u_tm[:,:,ri], d_tm[:,:,ri], e_up, e_down
 
-# for multi dipole
+# TODO numba
 #@jit(("Tuple(c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], "
 #            "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :])"
 #     "(i8, i8, i8, i8, i8, c16[:, :, :, :], f8[:], c16[:, :], c16[:, :])"), 
@@ -153,6 +153,7 @@ def _compute_reflection(kk, ll, mm, si, u, thick_all, admy, impz):
 
     return dr_te, dr_tm, ur_te, ur_tm, yuc, zuc
 
+#TODO let's numba !
 #@jit((
 #    "Tuple("
 #        "c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :], c16[:, :, :, :],"

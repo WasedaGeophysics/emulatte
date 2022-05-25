@@ -115,7 +115,7 @@ class Earth1DEM(Model):
         rmp = np.ones(self.nstrata) if rmp is None else \
               np.array(rmp, dtype=float)
 
-        res = np.append(1e9, res)
+        res = np.append(1e12, res)
         rep = np.append(1, rep)
         rmp = np.append(1, rmp)
         
@@ -305,6 +305,7 @@ class Earth1DEM(Model):
         signal = self.source.signal
         if self.ft_config["method"] == "dlf":
             # 計算に必要な周波数を全て持ってくる
+            
             # コンボリューション
             pass
 

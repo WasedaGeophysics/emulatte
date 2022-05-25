@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import numpy as np
 
 base = np.array([
@@ -274,4 +275,3 @@ j1 = np.array([
         -1.058874199108483e-15, -7.272598152921200e-16, -4.417201435824073e-16,
         -1.847984204751173e-16
         ])
-
