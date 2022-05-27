@@ -22,12 +22,9 @@ def check_waveform(magnitude, ontime, frequency):
     elif frequency is None:
         domain = "time"
         if size == 1:
-            signal = "default"
-            magnitude = magnitude.astype(float)
+            magnitude = magnitude.real[0]
             if ontime == 1:
                 signal = "stepon"
-            elif ontime == 0:
-                signal = "impulse"
             elif ontime == -1:
                 signal = "stepoff"
             else:
@@ -45,8 +42,10 @@ def check_waveform(magnitude, ontime, frequency):
                          "ontime or frequency is None"))
     return domain, signal, magnitude, ontime, frequency
 
-def split_time(time):
+def check_time(time):
+    if 0 in time:
+        raise Exception("")
     nnegative = sum(time < 0)
     time_neg = time[:nnegative]
     time_pos = time[nnegative:]
-    return
+    return time_neg, time_pos

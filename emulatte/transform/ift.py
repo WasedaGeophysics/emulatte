@@ -2,18 +2,13 @@ import numpy as np
 import scipy
 from scipy import interpolate
 import scipy.signal as ss
-from ..dlf.loader import load_sin_cos_filter
 
 # dlf
-def get_frequency_for_dlf(time_min, time_max, ft_config):
-    sampling_method = ft_config["sampling"]
-    if ft_config["_user_def"]:
-        phase_base = ft_config["phase"]
-    else:
-        filter_name = ft_config["filter"]
-        phase_base, _, _ = load_sin_cos_filter(filter_name)
+def get_freqtime_dlf(time, phase_base, boosting):
+    time_max = time[-1]
+    time_min = time[0]
 
-    if sampling_method == "fdri":
+    if boosting == "fdri":
         #TODO optimize this
         pts_per_decade = 30
         logfmin = int(np.log10(phase_base[0] / time_max)) - 2
@@ -21,9 +16,9 @@ def get_frequency_for_dlf(time_min, time_max, ft_config):
         freq_size = (logfmax - logfmin) * pts_per_decade
         omega = np.logspace(logfmin, logfmax, freq_size)
         freq = omega / (2 * np.pi)
-        time_resample = None
+        time_resampled = time
 
-    elif sampling_method == "lagged":
+    elif boosting == "lag":
         # 10th root of eular number
         common = phase_base[1] / phase_base[0]
 
@@ -47,16 +42,45 @@ def get_frequency_for_dlf(time_min, time_max, ft_config):
         omega_2 = phase / etime[0]
         omega = np.concatenate([omega_1[:-1], omega_2])
         freq = omega / (2 * np.pi)
-        time_resample = etime
+        time_resampled = etime
 
-    return freq, time_resample
+    return freq, time_resampled
+
+def make_matrix_dlf(emf_fd, time, frequency, phase_base, boosting, ndirection):
+    phase_size = len(phase_base)
+    ntime = len(time)
+    if boosting == "lag":
+        kernel_matrix = np.zeros((ndirection, ntime, phase_size), dtype=float)
+        tol = 1e-12
+        for dd in range(ndirection):
+            for i in range(ntime):
+                slc = (ntime - 1 - i, ntime + phase_size - 1 - i)
+                lagged_emf = emf_fd[dd, slc[0]:slc[1]]
+                # adaptive convolution
+                abs_max = abs(lagged_emf).max()
+                cut_off_window = abs(lagged_emf) > abs_max * tol
+                lagged_emf = lagged_emf * cut_off_window
+                kernel_matrix[dd, i] = lagged_emf
+
+    elif boosting == "fdri":
+        omega = 2 * np.pi * frequency
+        interp_fd = interpolate.interp1d(omega, emf_fd[0], kind='cubic')
+        kernel_matrix = np.zeros((ndirection, ntime, phase_size), dtype=float)
+
+        for i in range(ntime):
+            omega_base = phase_base / time[i]
+            interp_fd_ans = interp_fd(omega_base)
+            kernel_matrix[:, i] = interp_fd_ans[:]
+
+    return kernel_matrix
+
 
 
 def lagged_convolution(model, which, direction, time, signal):
     """Summary
     The common ratio of base array {ωt} must be e^0.1 in order to perform lagged convolution.
     """
-    base, cos, sin = load_sin_cos_filter('anderson_time_787')
+    base, cos, sin = loader.load_sin_cos_filter('anderson_time_787')
     # 10th root of eular number
     XRE = 1.1051709180756477124
     #   = np.exp(np.float128(1.)) ** np.float128(0.1)
@@ -149,7 +173,7 @@ def fdrift(model, which, direction, time, signal):
     time_size = len(time)
     #TODO optimize this
     pts_per_decade = 30
-    base, cos, sin = load_sin_cos_filter(model.fft_filter)
+    base, cos, sin = loader.load_sin_cos_filter(model.fft_filter)
     logfmin = int(np.log10(base[0] / time[-1])) - 2
     logfmax = int(np.log10(base[-1] / time[0])) + 1
     freq_size = (logfmax - logfmin) * pts_per_decade

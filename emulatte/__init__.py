@@ -1,3 +1,3 @@
-from .forward import create_model
+from .emui import create_model
 
 __version__ = "1.0.0"

@@ -16,7 +16,7 @@
 
 import numpy as np
 from numpy.typing import NDArray
-from ..utils.converter import check_waveform
+from ..utils.interpret import check_waveform
 from ..utils.emu_object import Source
 from .kernel.edipole import *
 from .kernel.mdipole import (

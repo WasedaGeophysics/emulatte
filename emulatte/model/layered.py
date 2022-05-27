@@ -29,17 +29,21 @@ Notes
 
 # from Python Standard Libraries
 from __future__ import annotations
+from statistics import mode
 
 # from Third Party Libraries
 import numpy as np
 from numpy.typing import ArrayLike
+import scipy
 import scipy.constants as const
 
 # from Internal Packages
 from . import geometrics, damping
 from ..utils.emu_object import Model, Source, DataArray
-from ..utils.interpret
-from ..dlf import loader as dlf
+from ..utils.interpret import check_time
+from ..dlf import loader
+from ..transform import ift
+
 
 class Earth1DEM(Model):
     r"""Main UI class holding model parameter and results
@@ -78,14 +82,14 @@ class Earth1DEM(Model):
         self.ft_config = {
             "method" : "dlf",
             # dlf settings
-            "sampling" : "lagged_convolution",
+            "boost" : "lag",
             "filter" : "key_time_201",
             "window" : None,
             "sincos" : False,
             "_user_def" : False,
             "phase" : None,
-            "sin" : None,
-            "cos" : None
+            "cos" : None,
+            "sin" : None
         }
 
     ### UI METHODS ###
@@ -303,19 +307,36 @@ class Earth1DEM(Model):
             dtype = complex
         """
         # 
+        time = np.array(time)
         signal = self.source.signal
         if self.ft_config["method"] == "dlf":
-            time_pos, time_neg =  
+            boosting = self.ft_config["boost"]
+            # load filter
+            if self.ft_config["_user_def"]:
+                self.phase_base = self.ft_config["phase"]
+                self.cos = self.ft_config["cos"]
+                self.sin = self.ft_config["sin"]
+            else:
+                filter_name = self.ft_config["filter"]
+                self.phase_base, self.cos, self.sin = \
+                    loader.load_sin_cos_filter(filter_name)
 
-            # 計算に必要な周波数を全て持ってくる
-            
-            # コンボリューション
-            pass
+            if signal in {"stepon", "stepoff"}:
+                data = \
+                    self._compute_unit_step_responce(
+                        fieldtype, direction, coordinate, time, signal, 
+                        boosting, time_derivative
+                    )
+                data *= self.source.magnitude_t
 
-        elif self.ft_config["method"] == "qwe":
-            pass
+            elif self.source.signal == "arbitrary":
+                pass
+        
         else:
             raise NameError
+        if data.shape[0] == 1:
+            data = data[0]
+        return data
 
     def _compute_fdem_responce_dlf(self, direction, magnetic):
         # compute admittivity, impedivity, wavenumber in each layer
@@ -332,7 +353,7 @@ class Earth1DEM(Model):
         else:
             filter_name = self.ht_config["filter"]
             self.phase, self.bessel_j0, self.bessel_j1 = \
-                dlf.load_hankel_filter(filter_name)
+                loader.load_hankel_filter(filter_name)
         
         self.nphase = len(self.phase)
         
@@ -429,3 +450,62 @@ class Earth1DEM(Model):
         self.u_te, self.d_te = u_te, d_te
         self.u_tm, self.d_tm = u_tm, d_tm
         self.e_up, self.e_down = e_up, e_down
+
+    def _compute_unit_step_responce(self, fieldtype, direction, coordinate, time, signal, boosting, time_derivative):
+        ndirection = len(direction)
+        # 計算に必要な周波数を全て持ってくる
+        frequency, time_new = \
+            ift.get_freqtime_dlf(time, self.phase_base, boosting)
+        omega = 2 * np.pi * frequency
+
+        # 周波数電磁場の計算
+        emf_fd = self.fdem(
+            fieldtype, direction, coordinate, frequency,
+            time_derivative, normalize=True)
+        self.emf_fd_normalized = emf_fd
+        self.frequency_ = frequency
+        if ndirection == 1:
+            emf_fd = np.array([emf_fd])
+
+        # 電流波形の反映
+        if signal == "stepon":
+            emf_fd *= 1 / (1.j * omega)
+            if time_derivative:
+                emf_fd = emf_fd.real * 2 / np.pi
+                filter_choice = "cos"
+            else:
+                emf_fd = - emf_fd.imag * 2 / np.pi
+                filter_choice = "sin"
+
+        else: # step off
+            emf_fd *= -1 / (1.j * omega)
+            if time_derivative:
+                emf_fd = - emf_fd.imag * 2 / np.pi
+                filter_choice = "sin"
+            else:
+                emf_fd = emf_fd.real * 2 / np.pi
+                filter_choice = "cos"
+
+        # カーネル行列の作成
+        kernel_mat = ift.make_matrix_dlf(
+            emf_fd, time_new, frequency, self.phase_base, boosting, ndirection)
+
+        # コンボリューション
+        if filter_choice == "cos":
+            data = np.dot(kernel_mat, self.cos) / time_new
+        elif filter_choice == "sin":
+            data = np.dot(kernel_mat, self.sin) / time_new
+
+        # interpolation
+        if boosting == "lag":
+            interp_data = []
+            for i in range(ndirection):
+                get_field_along = \
+                    scipy.interpolate.interp1d(
+                        np.log(time_new), data[i], kind='cubic')
+                field = get_field_along(np.log(time))
+                interp_data.append(field)
+            data = np.array(interp_data)
+        else:
+            pass
+        return data
