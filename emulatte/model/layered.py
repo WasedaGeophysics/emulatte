@@ -30,6 +30,7 @@ Notes
 # from Python Standard Libraries
 from __future__ import annotations
 from statistics import mode
+import wave
 
 # from Third Party Libraries
 import numpy as np
@@ -42,7 +43,7 @@ from . import geometrics, damping
 from ..utils.emu_object import Model, Source, DataArray
 from ..utils.interpret import check_time
 from ..dlf import loader
-from ..transform import ift
+from ..transform import fourier
 
 
 class Earth1DEM(Model):
@@ -89,7 +90,8 @@ class Earth1DEM(Model):
             "_user_def" : False,
             "phase" : None,
             "cos" : None,
-            "sin" : None
+            "sin" : None,
+            "awave" : 1
         }
 
     ### UI METHODS ###
@@ -166,14 +168,29 @@ class Earth1DEM(Model):
         self.source_installed = True
 
 
-    def read_config(self, **kwargs : dict) -> None:
+    def apply_ht_config(self, **kwargs : dict) -> None:
         r"""
         Parameters
         ----------
         kwargs : dict
         """
-        self.ht_config = kwargs["ht"]
-        self.ft_config = kwargs["ft"]
+        for k in kwargs:
+            if k in self.ht_config:
+                self.ht_config[k] = kwargs[k]
+            else:
+                raise KeyError("an invalid key : " + k)
+
+    def apply_ft_config(self, **kwargs : dict) -> None:
+        r"""
+        Parameters
+        ----------
+        kwargs : dict
+        """
+        for k in kwargs:
+            if k in self.ft_config:
+                self.ft_config[k] = kwargs[k]
+            else:
+                raise KeyError("an invalid key : " + k)
 
     def change_dlf_filter(
             self,
@@ -309,6 +326,7 @@ class Earth1DEM(Model):
         # 
         time = np.array(time)
         signal = self.source.signal
+        # DLF method
         if self.ft_config["method"] == "dlf":
             boosting = self.ft_config["boost"]
             # load filter
@@ -330,8 +348,16 @@ class Earth1DEM(Model):
                 data *= self.source.magnitude_t
 
             elif self.source.signal == "arbitrary":
-                pass
-        
+                awave_mode = self.ft_config["awave"]
+                if awave_mode == 1:
+                    # 電流波形を直接フーリエ変換
+
+                    pass
+                elif awave_mode == 2:
+                    # 電流波形をステップオフ波形に分解して畳み込み
+                    pass
+                else:
+                    raise ValueError
         else:
             raise NameError
         if data.shape[0] == 1:
@@ -455,7 +481,7 @@ class Earth1DEM(Model):
         ndirection = len(direction)
         # 計算に必要な周波数を全て持ってくる
         frequency, time_new = \
-            ift.get_freqtime_dlf(time, self.phase_base, boosting)
+            fourier.get_freqtime_dlf(time, self.phase_base, boosting)
         omega = 2 * np.pi * frequency
 
         # 周波数電磁場の計算
@@ -487,7 +513,56 @@ class Earth1DEM(Model):
                 filter_choice = "cos"
 
         # カーネル行列の作成
-        kernel_mat = ift.make_matrix_dlf(
+        kernel_mat = fourier.make_matrix_dlf(
+            emf_fd, time_new, frequency, self.phase_base, boosting, ndirection)
+
+        # コンボリューション
+        if filter_choice == "cos":
+            data = np.dot(kernel_mat, self.cos) / time_new
+        elif filter_choice == "sin":
+            data = np.dot(kernel_mat, self.sin) / time_new
+
+        # interpolation
+        if boosting == "lag":
+            interp_data = []
+            for i in range(ndirection):
+                get_field_along = \
+                    scipy.interpolate.interp1d(
+                        np.log(time_new), data[i], kind='cubic')
+                field = get_field_along(np.log(time))
+                interp_data.append(field)
+            data = np.array(interp_data)
+        else:
+            pass
+        return data
+
+    def _compute_arb_wave_responce(self, fieldtype, direction, coordinate, time, signal, boosting, time_derivative):
+        ndirection = len(direction)
+        # 計算に必要な周波数を全て持ってくる
+        frequency, time_new = \
+            fourier.get_freqtime_dlf(time, self.phase_base, boosting)
+        omega = 2 * np.pi * frequency
+
+        # 周波数電磁場の計算
+        emf_fd = self.fdem(
+            fieldtype, direction, coordinate, frequency,
+            time_derivative, normalize=True)
+        self.emf_fd_normalized = emf_fd
+        self.frequency_ = frequency
+
+        if ndirection == 1:
+            emf_fd = np.array([emf_fd])
+
+        waveform = self.source.magnitude_t
+        ontime = self.source.ontime
+
+        wave_fd = fourier.compute_fdwave(ontime, waveform)
+
+        # 電流波形の反映
+        emf_fd = emf_fd * wave_fd
+
+        # カーネル行列の作成
+        kernel_mat = fourier.make_matrix_dlf(
             emf_fd, time_new, frequency, self.phase_base, boosting, ndirection)
 
         # コンボリューション

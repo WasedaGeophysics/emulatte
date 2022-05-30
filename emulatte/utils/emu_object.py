@@ -21,4 +21,3 @@ class DataArray(np.ndarray):
         self = np.asarray(data, dtype=dtype).view(cls)
         self.meta = meta
         return self
-
