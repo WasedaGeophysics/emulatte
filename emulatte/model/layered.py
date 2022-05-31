@@ -360,6 +360,7 @@ class Earth1DEM(Model):
                     raise ValueError
         else:
             raise NameError
+            
         if data.shape[0] == 1:
             data = data[0]
         return data

@@ -1,6 +1,7 @@
+from turtle import fd
 import numpy as np
 import scipy
-from scipy import interpolate
+from scipy import interpolate, integrate
 import scipy.signal as ss
 
 # dlf
@@ -74,11 +75,33 @@ def make_matrix_dlf(emf_fd, time, frequency, phase_base, boosting, ndirection):
 
     return kernel_matrix
 
-def compute_fdwave(ontime, waveform, frequency):
-
+def compute_fdwave(ontime, waveform, omega):
+    margin = 0.1
+    ontime = np.hstack([ontime[0]-margin, ontime, ontime[-1]+margin])
+    waveform = np.hstack([0, waveform, 0])
     waveform_func = interpolate.interp1d(ontime, waveform, kind='linear')
     a = ontime[0]
-    b = ontime[1]
+    b = ontime[-1]
+    def fdwave(omega, waveform_func, a, b):
+        def integrant_real(t, waveform_func, omega):
+            dt = 5.e-5
+            wave_tder = (waveform_func(t+dt)-waveform_func(t-dt)) / (2*dt)
+            f = wave_tder / (1.j * omega) * np.exp(-1.j * omega * t)
+            return f.real
 
-    def integrant
+        def integrant_imag(t, waveform_func, omega):
+            dt = 5.e-5
+            wave_tder = (waveform_func(t+dt)-waveform_func(t-dt)) / (2*dt)
+            f = wave_tder / (1.j * omega) * np.exp(-1.j * omega * t)
+            return f.imag
 
+        waveform_fd_real, _ = integrate.quad(
+                            integrant_real, a, b, args=(waveform_func, omega))
+        waveform_fd_imag, _ = integrate.quad(
+                            integrant_imag, a, b, args=(waveform_func, omega))
+        waveform_fd = waveform_fd_real + 1.j * waveform_fd_imag
+        return waveform_fd
+
+    fdwave = np.vectorize(fdwave, excluded=["waveform_func", "a", "b"])
+    fdwave_value = fdwave(omega, waveform_func, a, b)
+    return fdwave_value
