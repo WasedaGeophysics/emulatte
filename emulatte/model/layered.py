@@ -565,6 +565,7 @@ class Earth1DEM(Model):
         kernel_mat = fourier.make_matrix_dlf(
             emf_fd, time_new, frequency, self.phase_base, boosting, ndirection)
 
+        filter_choice = "cos"
         # コンボリューション
         if filter_choice == "cos":
             data = np.dot(kernel_mat, self.cos) / time_new

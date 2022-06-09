@@ -79,6 +79,6 @@ def compute_fdwave(ontime, waveform, frequency):
     waveform_func = interpolate.interp1d(ontime, waveform, kind='linear')
     a = ontime[0]
     b = ontime[1]
+    pass
 
-    def integrant
 
